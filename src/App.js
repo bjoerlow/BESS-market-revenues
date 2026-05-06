@@ -1,4 +1,4 @@
-import Dashboard from './bess-dashboard-v4';
+import Dashboard from './bess-dashboard-v5';
 
 function App() {
   return <Dashboard />;

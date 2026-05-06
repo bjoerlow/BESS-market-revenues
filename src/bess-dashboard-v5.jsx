@@ -12,7 +12,7 @@ const STRATEGIES = {
   fcrn:          { id: "fcrn",          label: "FCR-N",                      color: "#38bdf8", short: "FCR-N" },
   fcrd:          { id: "fcrd",          label: "FCR-D upp+ned",              color: "#fbbf24", short: "FCR-D" },
   mfrr_conv:     { id: "mfrr_conv",     label: "mFRR konventionell",         color: "#fb923c", short: "mFRR conv." },
-  mfrr_netting:  { id: "mfrr_netting",  label: "mFRR intradagsnettning",     color: "#34d399", short: "mFRR nett." },
+  mfrr_netting:  { id: "mfrr_netting",  label: "mFRR intradag",              color: "#34d399", short: "mFRR nett." },
   intraday1:     { id: "intraday1",     label: "Intradag 1 cykel",           color: "#c084fc", short: "ID 1c" },
   intraday2:     { id: "intraday2",     label: "Intradag 2 cykler",          color: "#a78bfa", short: "ID 2c" },
   dayahead:      { id: "dayahead",      label: "Day-ahead arbitrage",        color: "#f472b6", short: "DA arb." },

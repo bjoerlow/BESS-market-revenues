@@ -376,7 +376,6 @@ export default function Dashboard(){
           <div><div style={{color:T.text,fontWeight:600,marginBottom:3}}>Beräkning</div>
             8 strategier × 3 uthålligheter<br/>RTE: 85% · FCR-D dual: 87%<br/>Intradag: 50%/30% capture<br/>DA: 45% capture, ~8% obalans</div></div>
         </div>
-      </div>
     </div>
   );
 }

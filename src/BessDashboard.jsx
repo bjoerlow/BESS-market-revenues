@@ -40,7 +40,8 @@ const TXT={
   shareCeil:"Andel av tak",convShare:"Konventionell andel",
   ceilMissing:"theoretical_max_all.json saknas i public/",ceilRun:"Kör",ceilPut:"och lägg filen i dashboardens public-mapp.",
   ceilExpl:"Taket väljer fritt bästa marknad i varje kvart med facit i hand och begränsas av batteriets SoC, uthållighetskrav per tjänst (mFRR 1 h, FCR 20 min), verkningsgrad och cykelbudget. Det är alltså inte ett realistiskt mål utan ett mått på hur stor del av marknadens värde en strategi fångar. Kapacitetsintäkt kräver ingen framförhållning — därför ligger andelen högt när mFRR CM dominerar månaden.",
-  monthCol:"Mån",sum:"SUMMA",actual:"Faktiskt utfall",modelDev:"Modellen ligger inom",
+  monthCol:"Mån",sum:"SUMMA",actual:"Faktiskt utfall",modelDev:"Modellen ligger inom",avail:"tillgänglighet",
+  adjNote:"justerat för tillgänglighet",
   ofActual:"av faktiskt utfall",monthsShort:"mån",validatedIn:"validerat mot",
   notModelled:"ny strategigeneration — ej modellerad",
   fPhys:"Uthållighetsfysik",fPhysB:"FCR-N: 1h→16h, 2h→20h|FCR-D: oberoende av uthållighet|FCR-N+D: 0.5 MW vardera|GV mFRR 2h: kräver 2,5h BESS|4h utelämnad tills benchmark finns",
@@ -69,7 +70,8 @@ const TXT={
   shareCeil:"Share of ceiling",convShare:"Conventional share",
   ceilMissing:"theoretical_max_all.json missing in public/",ceilRun:"Run",ceilPut:"and place the file in the dashboard public folder.",
   ceilExpl:"The ceiling picks the best market in every quarter-hour with hindsight, constrained by state of charge, endurance requirements per service (mFRR 1 h, FCR 20 min), round-trip efficiency and cycle budget. It is not a realistic target but a measure of how much of the market value a strategy captures. Capacity revenue requires no foresight — which is why the share runs high in months dominated by mFRR CM.",
-  monthCol:"Month",sum:"TOTAL",actual:"Actual outcome",modelDev:"Model within",
+  monthCol:"Month",sum:"TOTAL",actual:"Actual outcome",modelDev:"Model within",avail:"availability",
+  adjNote:"adjusted for availability",
   ofActual:"of actual outcome",monthsShort:"mo",validatedIn:"validated against",
   notModelled:"new strategy generation — not modelled",
   fPhys:"Duration physics",fPhysB:"FCR-N: 1h→16h, 2h→20h|FCR-D: independent of duration|FCR-N+D: 0.5 MW each|GV mFRR 2h: requires 2.5h BESS|4h omitted until benchmark exists",
@@ -250,15 +252,19 @@ export default function Dashboard(){
     return actArea.filter(a=>near(a)===dur);
   },[actArea,dur]);
   const mAct=useMemo(()=>{const o={};actShown.forEach(a=>{o[a.year_month]=a;});return o;},[actShown]);
-  const monthsA=useMemo(()=>months.map(m=>{const a=mAct[m.ym];
-    return a?{...m,actual:Math.round(a.total/(a.mw||1)*mw)}:m;}),[months,mAct,mw]);
+  const monthsA=useMemo(()=>months.map(m=>{const a=mAct[m.ym];if(!a)return m;
+    const av=a.availability==null?1:a.availability;
+    return{...m,actual:Math.round(a.total/(a.mw||1)*mw),
+           actualNorm:Math.round(a.total/av/(a.mw||1)*mw),actAvail:av,actNote:a.note||""};}),
+    [months,mAct,mw]);
   const hasAct=monthsA.some(m=>m.actual!=null);
   const valid=useMemo(()=>{
-    const p=monthsA.filter(m=>m.actual>0&&m.mfrr_opt>0);
+    const p=monthsA.filter(m=>m.actualNorm>0&&m.mfrr_opt>0);
     if(!p.length)return null;
-    const dev=p.map(m=>Math.abs(m.mfrr_opt/m.actual-1));
+    const dev=p.map(m=>Math.abs(m.mfrr_opt/m.actualNorm-1));
     return{n:p.length,max:Math.max(...dev)*100,site:actShown[0]?.site||"",
-           spec:actShown[0]?`${actShown[0].mw} MW / ${actShown[0].duration_h} MWh`:""};
+           spec:actShown[0]?`${actShown[0].mw} MW / ${actShown[0].duration_h} MWh`:"",
+           adj:p.some(m=>m.actAvail<0.999)};
   },[monthsA,actShown]);
   const vers=useMemo(()=>{
     if(!acts||!acts.strategy_versions)return[];
@@ -333,7 +339,7 @@ export default function Dashboard(){
           display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
           <span style={{width:7,height:7,borderRadius:"50%",background:grn,flexShrink:0}}/>
           <span><strong style={{color:t.tx}}>{L.modelDev} ±{valid.max.toFixed(1)}%</strong> {L.ofActual}
-            {" · "}{valid.n} {L.monthsShort} · {valid.site} {valid.spec}</span>
+            {" · "}{valid.n} {L.monthsShort} · {valid.site} {valid.spec}{valid.adj?` · ${L.adjNote}`:""}</span>
         </div>)}
 
         <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap"}}>
@@ -353,10 +359,17 @@ export default function Dashboard(){
             {SIDS.filter(s=>sel.has(s)).map(sid=>(<Bar key={sid} dataKey={sid} name={S[sid].l[lang]} fill={sc(sid)} opacity={0.6} radius={[2,2,0,0]}/>))}
             {hasT&&<Line dataKey="tmax" name={L.ceiling} stroke={T_GREY} strokeWidth={2} strokeDasharray="6 3" dot={false}/>}
             {hasAct&&<Line dataKey="actual" name={L.actual} stroke={t.tx} strokeWidth={0}
-              dot={{r:5,fill:t.tx,stroke:t.bg,strokeWidth:2}} connectNulls={false} legendType="circle"/>}
+              dot={p=>{if(p.payload?.actual==null)return<g key={p.index}/>;
+                const full=(p.payload.actAvail??1)>=0.999;
+                return<circle key={p.index} cx={p.cx} cy={p.cy} r={5}
+                  fill={full?t.tx:"none"} stroke={full?t.bg:t.tx} strokeWidth={2}/>;}}
+              connectNulls={false} legendType="circle"/>}
           </ComposedChart></ResponsiveContainer>
           {vers.length>0&&(<div style={{marginTop:10,display:"flex",gap:14,flexWrap:"wrap",fontSize:10,color:t.dm}}>
             {vers.map(v=>(<span key={v.from}><strong style={{color:t.mu}}>{v.label}</strong> {v.at} — {v.note}</span>))}</div>)}
+          {monthsA.filter(m=>m.actAvail!=null&&m.actAvail<0.999).map(m=>(
+            <div key={m.ym} style={{marginTop:6,fontSize:10,color:t.dm}}>
+              ○ {m.label} · {L.avail} {(m.actAvail*100).toFixed(0)}% · {m.actNote} · {L.adjNote}: {fmtE(m.actualNorm)}</div>))}
           </Card>)}
 
         {view==="mfrr"&&(()=>{

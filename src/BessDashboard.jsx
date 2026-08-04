@@ -6,7 +6,7 @@ const S={
   fcrd:{l:{sv:"FCR-D upp+ned",en:"FCR-D up+down"},c:["#fbbf24","#d97706"],s:{sv:"FCR-D",en:"FCR-D"}},
   fcrn_fcrd:{l:{sv:"FCR-N + FCR-D",en:"FCR-N + FCR-D"},c:["#22d3ee","#0891b2"],s:{sv:"N+D",en:"N+D"}},
   mfrr_conv:{l:{sv:"mFRR konventionell",en:"mFRR conventional"},c:["#fb923c","#ea580c"],s:{sv:"mFRR konv.",en:"mFRR conv."}},
-  mfrr_opt:{l:{sv:"GreenVoltis mFRR",en:"GreenVoltis mFRR"},c:["#34d399","#059669"],s:{sv:"GV mFRR",en:"GV mFRR"}},
+  mfrr_opt:{l:{sv:"GreenVoltis strategi",en:"GreenVoltis strategy"},c:["#34d399","#059669"],s:{sv:"GV strategi",en:"GV strategy"}},
   intraday1:{l:{sv:"Intradag 1 cykel",en:"Intraday 1 cycle"},c:["#c084fc","#9333ea"],s:{sv:"ID 1c",en:"ID 1c"}},
   intraday2:{l:{sv:"Intradag 2 cykler",en:"Intraday 2 cycles"},c:["#a78bfa","#7c3aed"],s:{sv:"ID 2c",en:"ID 2c"}},
   dayahead:{l:{sv:"Day-ahead arbitrage",en:"Day-ahead arbitrage"},c:["#f472b6","#db2777"],s:{sv:"DA arb.",en:"DA arb."}},
@@ -26,11 +26,11 @@ const TXT={
   inclImb:"inkl. obalans",
   tComparison:"Strategijämförelse",tMfrr:"mFRR upp vs ned",tDa:"Day-ahead & obalans",tTable:"Månadstabell",
   mfrrUp:"mFRR upp",mfrrDown:"mFRR ned",dUpDown:"Δ (upp−ned)",perDir:"CM+EAM per riktning",
-  best:"Bäst",up:"UPP",down:"NED",conv:"Konventionell",vsTitle:"Konventionell vs GreenVoltis mFRR",
+  best:"Bäst",up:"UPP",down:"NED",conv:"Konventionell",vsTitle:"Konventionell vs GreenVoltis strategi",
   sameDir:"Samma riktning, olika deltagande",dOptConv:"Δ opt−konv.",diff:"Skillnad",
   convExpl1:"h/dygn mFRR CM. SoC via elhandlare → pauser, ~6% obalans.",convExpl2:"h/dygn FCR-D backfill.",
   gvExpl1:"h/dygn CM,",gvExpl2:"EAM-akt/dag vs",gvBf:"h/dygn FCR-D backfill.",
-  gvNote:"Not: 2h GreenVoltis mFRR förutsätter ett 2,5h BESS.",
+  gvNote:"Not: 2h GreenVoltis strategi förutsätter ett 2,5h BESS.",
   daTitle:"Day-ahead arbitrage",daSub:"85% capture · ~8% obalanskostnad",
   grossArb:"Bruttoarbitrage",imbCost:"Obalanskostnad",netRev:"Nettointäkt",id2ref:"Intradag 2c (jmf)",
   daNet:"DA netto",daGross:"DA brutto",id2c:"Intradag 2c",
@@ -56,11 +56,11 @@ const TXT={
   inclImb:"incl. imbalance",
   tComparison:"Strategy comparison",tMfrr:"mFRR up vs down",tDa:"Day-ahead & imbalance",tTable:"Monthly table",
   mfrrUp:"mFRR up",mfrrDown:"mFRR down",dUpDown:"Δ (up−down)",perDir:"CM+EAM per direction",
-  best:"Best",up:"UP",down:"DOWN",conv:"Conventional",vsTitle:"Conventional vs GreenVoltis mFRR",
+  best:"Best",up:"UP",down:"DOWN",conv:"Conventional",vsTitle:"Conventional vs GreenVoltis strategy",
   sameDir:"Same direction, different participation",dOptConv:"Δ opt−conv.",diff:"Difference",
   convExpl1:"h/day mFRR CM. SoC restored via retailer → pauses, ~6% imbalance.",convExpl2:"h/day FCR-D backfill.",
   gvExpl1:"h/day CM,",gvExpl2:"EAM activations/day vs",gvBf:"h/day FCR-D backfill.",
-  gvNote:"Note: 2h GreenVoltis mFRR assumes a 2.5h BESS.",
+  gvNote:"Note: 2h GreenVoltis strategy assumes a 2.5h BESS.",
   daTitle:"Day-ahead arbitrage",daSub:"85% capture · ~8% imbalance cost",
   grossArb:"Gross arbitrage",imbCost:"Imbalance cost",netRev:"Net revenue",id2ref:"Intraday 2c (ref)",
   daNet:"DA net",daGross:"DA gross",id2c:"Intraday 2c",
@@ -328,7 +328,7 @@ export default function Dashboard(){
           ⚠ <strong>{L.noData}</strong> {L.noDataRest}</div>)}
         <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}}>
           <KPI label={`${L.ceiling} ${N} ${L.mo} (${dur}h)`} value={hasT?fmtE(ann.tmax):"—"} sub={L.foresight} color={isDark?"#94a3b8":"#64748b"} t={t}/>
-          <KPI label="GreenVoltis mFRR" value={fmtE(ann.mfrr_opt)} sub={hasT?`${(ann.mfrr_opt/ann.tmax*100).toFixed(0)}% ${L.ofCeil}${dur===2?` · ${L.reqBess}`:""}`:(dur===2?L.reqBess:"")} color={sc("mfrr_opt")} t={t}/>
+          <KPI label={S.mfrr_opt.l[lang]} value={fmtE(ann.mfrr_opt)} sub={hasT?`${(ann.mfrr_opt/ann.tmax*100).toFixed(0)}% ${L.ofCeil}${dur===2?` · ${L.reqBess}`:""}`:(dur===2?L.reqBess:"")} color={sc("mfrr_opt")} t={t}/>
           <KPI label={S.mfrr_conv.l[lang]} value={fmtE(ann.mfrr_conv)} sub={hasT?`${(ann.mfrr_conv/ann.tmax*100).toFixed(0)}% ${L.ofCeil}`:""} color={sc("mfrr_conv")} t={t}/>
           <KPI label="FCR-N + FCR-D" value={fmtE(ann.fcrn_fcrd)} sub={hasT?`${(ann.fcrn_fcrd/ann.tmax*100).toFixed(0)}% ${L.ofCeil}`:""} color={sc("fcrn_fcrd")} t={t}/>
           <KPI label="Day-ahead" value={fmtE(ann.dayahead)} sub={L.inclImb} color={sc("dayahead")} warn t={t}/>
@@ -449,7 +449,7 @@ export default function Dashboard(){
           const comp=[["tmax_fcrn","FCR-N",sc("fcrn")],["tmax_fcrd","FCR-D",sc("fcrd")],
                       ["tmax_cm_up",L.cmUp,sc("mfrr_opt")],["tmax_cm_down",L.cmDown,amb],
                       ["tmax_energy",L.energy,sc("intraday2")]];
-          const kGv="GreenVoltis",kCv=L.conv;
+          const kGv=S.mfrr_opt.l[lang],kCv=L.conv;
           const data=months.map(m=>{const o={label:m.label,[kGv]:m.mfrr_opt,[kCv]:m.mfrr_conv};
             comp.forEach(([k,l])=>{o[l]=m[k]||0;});return o;});
           if(!hasT)return(<Card title={L.ceiling} t={t}>

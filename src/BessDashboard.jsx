@@ -42,6 +42,8 @@ const TXT={
   ceilExpl:"Taket väljer fritt bästa marknad i varje kvart med facit i hand och begränsas av batteriets SoC, uthållighetskrav per tjänst (mFRR 1 h, FCR 20 min), verkningsgrad och cykelbudget. Det är alltså inte ett realistiskt mål utan ett mått på hur stor del av marknadens värde en strategi fångar. Kapacitetsintäkt kräver ingen framförhållning — därför ligger andelen högt när mFRR CM dominerar månaden.",
   monthCol:"Mån",sum:"SUMMA",actual:"Faktiskt utfall",modelDev:"Modellen ligger inom",avail:"tillgänglighet",
   adjNote:"justerat för tillgänglighet",
+  measured:"mätt intradagsdata",proxyDev:"proxymånader",
+  proxyNote:"härledd intradagsspread (day-ahead × 1,2) — osäker när marknaderna frikopplas",
   ofActual:"av faktiskt utfall",monthsShort:"mån",validatedIn:"validerat mot",
   notModelled:"ny strategigeneration — ej modellerad",
   fPhys:"Uthållighetsfysik",fPhysB:"FCR-N: 1h→16h, 2h→20h|FCR-D: oberoende av uthållighet|FCR-N+D: 0.5 MW vardera|GV mFRR 2h: kräver 2,5h BESS|4h utelämnad tills benchmark finns",
@@ -72,6 +74,8 @@ const TXT={
   ceilExpl:"The ceiling picks the best market in every quarter-hour with hindsight, constrained by state of charge, endurance requirements per service (mFRR 1 h, FCR 20 min), round-trip efficiency and cycle budget. It is not a realistic target but a measure of how much of the market value a strategy captures. Capacity revenue requires no foresight — which is why the share runs high in months dominated by mFRR CM.",
   monthCol:"Month",sum:"TOTAL",actual:"Actual outcome",modelDev:"Model within",avail:"availability",
   adjNote:"adjusted for availability",
+  measured:"measured intraday data",proxyDev:"proxy months",
+  proxyNote:"derived intraday spread (day-ahead × 1.2) — unreliable when the markets decouple",
   ofActual:"of actual outcome",monthsShort:"mo",validatedIn:"validated against",
   notModelled:"new strategy generation — not modelled",
   fPhys:"Duration physics",fPhysB:"FCR-N: 1h→16h, 2h→20h|FCR-D: independent of duration|FCR-N+D: 0.5 MW each|GV mFRR 2h: requires 2.5h BESS|4h omitted until benchmark exists",
@@ -151,6 +155,7 @@ function tx(raw,dur,mw,lang){
   r.mfrr_cm_up_price=raw.mfrr_cm_up_price||0;r.mfrr_cm_down_price=raw.mfrr_cm_down_price||0;
   r.mfrr_eam_up_price=raw.mfrr_eam_up_price||0;r.mfrr_eam_down_price=raw.mfrr_eam_down_price||0;
   r.intraday_spread=raw.intraday_spread||0;r.da_imbalance_pct=raw.da_imbalance_pct||0;
+  r.spreadSrc=raw.spread_source||"unknown";
   return r;
 }
 
@@ -261,11 +266,18 @@ export default function Dashboard(){
   const valid=useMemo(()=>{
     const p=monthsA.filter(m=>m.actualNorm>0&&m.mfrr_opt>0);
     if(!p.length)return null;
-    const dev=p.map(m=>Math.abs(m.mfrr_opt/m.actualNorm-1));
-    return{n:p.length,max:Math.max(...dev)*100,site:actShown[0]?.site||"",
+    const dev=x=>Math.abs(x.mfrr_opt/x.actualNorm-1)*100;
+    const meas=p.filter(m=>m.spreadSrc==="measured");
+    const prox=p.filter(m=>m.spreadSrc!=="measured");
+    const base=meas.length?meas:p;                     // mätt om det finns, annars allt
+    return{n:base.length,max:Math.max(...base.map(dev)),
+           onlyProxy:!meas.length,
+           proxyN:prox.length,proxyMax:prox.length?Math.max(...prox.map(dev)):0,
+           site:actShown[0]?.site||"",
            spec:actShown[0]?`${actShown[0].mw} MW / ${actShown[0].duration_h} MWh`:"",
-           adj:p.some(m=>m.actAvail<0.999)};
+           adj:base.some(m=>m.actAvail<0.999)};
   },[monthsA,actShown]);
+  const proxyMonths=useMemo(()=>monthsA.filter(m=>m.spreadSrc==="da_proxy"),[monthsA]);
   const vers=useMemo(()=>{
     if(!acts||!acts.strategy_versions)return[];
     return acts.strategy_versions.map(v=>({...v,at:months.find(m=>m.ym===v.from)?.label}))
@@ -339,7 +351,10 @@ export default function Dashboard(){
           display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
           <span style={{width:7,height:7,borderRadius:"50%",background:grn,flexShrink:0}}/>
           <span><strong style={{color:t.tx}}>{L.modelDev} ±{valid.max.toFixed(1)}%</strong> {L.ofActual}
-            {" · "}{valid.n} {L.monthsShort} · {valid.site} {valid.spec}{valid.adj?` · ${L.adjNote}`:""}</span>
+            {" · "}{valid.n} {L.monthsShort}{valid.onlyProxy?"":` ${L.measured}`} · {valid.site} {valid.spec}
+            {valid.adj?` · ${L.adjNote}`:""}
+            {valid.proxyN>0&&!valid.onlyProxy&&(<span style={{color:t.dm}}>
+              {" · "}{L.proxyDev}: ±{valid.proxyMax.toFixed(1)}% ({valid.proxyN} {L.monthsShort})</span>)}</span>
         </div>)}
 
         <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap"}}>
@@ -367,6 +382,8 @@ export default function Dashboard(){
           </ComposedChart></ResponsiveContainer>
           {vers.length>0&&(<div style={{marginTop:10,display:"flex",gap:14,flexWrap:"wrap",fontSize:10,color:t.dm}}>
             {vers.map(v=>(<span key={v.from}><strong style={{color:t.mu}}>{v.label}</strong> {v.at} — {v.note}</span>))}</div>)}
+          {proxyMonths.length>0&&(<div style={{marginTop:6,fontSize:10,color:t.dm}}>
+            ⚠ {proxyMonths.map(m=>m.label).join(", ")} — {L.proxyNote}</div>)}
           {monthsA.filter(m=>m.actAvail!=null&&m.actAvail<0.999).map(m=>(
             <div key={m.ym} style={{marginTop:6,fontSize:10,color:t.dm}}>
               ○ {m.label} · {L.avail} {(m.actAvail*100).toFixed(0)}% · {m.actNote} · {L.adjNote}: {fmtE(m.actualNorm)}</div>))}

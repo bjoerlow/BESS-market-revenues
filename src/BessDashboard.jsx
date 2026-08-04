@@ -44,6 +44,7 @@ const TXT={
   adjNote:"justerat för tillgänglighet",
   measured:"mätt intradagsdata",proxyDev:"proxymånader",
   proxyNote:"härledd intradagsspread (day-ahead × 1,2) — osäker när marknaderna frikopplas",
+  manualNote:"manuellt satt intradagsspread — ingår ej i valideringen",
   ofActual:"av faktiskt utfall",monthsShort:"mån",validatedIn:"validerat mot",
   notModelled:"ny strategigeneration — ej modellerad",
   fPhys:"Uthållighetsfysik",fPhysB:"FCR-N: 1h→16h, 2h→20h|FCR-D: oberoende av uthållighet|FCR-N+D: 0.5 MW vardera|GV mFRR 2h: kräver 2,5h BESS|4h utelämnad tills benchmark finns",
@@ -76,6 +77,7 @@ const TXT={
   adjNote:"adjusted for availability",
   measured:"measured intraday data",proxyDev:"proxy months",
   proxyNote:"derived intraday spread (day-ahead × 1.2) — unreliable when the markets decouple",
+  manualNote:"manually set intraday spread — excluded from validation",
   ofActual:"of actual outcome",monthsShort:"mo",validatedIn:"validated against",
   notModelled:"new strategy generation — not modelled",
   fPhys:"Duration physics",fPhysB:"FCR-N: 1h→16h, 2h→20h|FCR-D: independent of duration|FCR-N+D: 0.5 MW each|GV mFRR 2h: requires 2.5h BESS|4h omitted until benchmark exists",
@@ -278,6 +280,7 @@ export default function Dashboard(){
            adj:base.some(m=>m.actAvail<0.999)};
   },[monthsA,actShown]);
   const proxyMonths=useMemo(()=>monthsA.filter(m=>m.spreadSrc==="da_proxy"),[monthsA]);
+  const manualMonths=useMemo(()=>monthsA.filter(m=>m.spreadSrc==="manual"),[monthsA]);
   const vers=useMemo(()=>{
     if(!acts||!acts.strategy_versions)return[];
     return acts.strategy_versions.map(v=>({...v,at:months.find(m=>m.ym===v.from)?.label}))
@@ -384,6 +387,8 @@ export default function Dashboard(){
             {vers.map(v=>(<span key={v.from}><strong style={{color:t.mu}}>{v.label}</strong> {v.at} — {v.note}</span>))}</div>)}
           {proxyMonths.length>0&&(<div style={{marginTop:6,fontSize:10,color:t.dm}}>
             ⚠ {proxyMonths.map(m=>m.label).join(", ")} — {L.proxyNote}</div>)}
+          {manualMonths.length>0&&(<div style={{marginTop:4,fontSize:10,color:amb}}>
+            ✎ {manualMonths.map(m=>m.label).join(", ")} — {L.manualNote}</div>)}
           {monthsA.filter(m=>m.actAvail!=null&&m.actAvail<0.999).map(m=>(
             <div key={m.ym} style={{marginTop:6,fontSize:10,color:t.dm}}>
               ○ {m.label} · {L.avail} {(m.actAvail*100).toFixed(0)}% · {m.actNote} · {L.adjNote}: {fmtE(m.actualNorm)}</div>))}

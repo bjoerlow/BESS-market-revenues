@@ -1,23 +1,29 @@
-// ─── calculator-feed.js ─────────────────────────────────────────────────────
-// Place in the BESS Revenue Intelligence dashboard repo as: api/calculator-feed.js
+// ─── calculator-feed.mjs ────────────────────────────────────────────────────
+// Place in the BESS Revenue Intelligence dashboard repo as:
+//     api/calculator-feed.mjs
 //
 // Serves the calculator feed to the GreenVoltis BESS Calculator only. The feed
 // carries realised per-zone revenue, so it is deliberately NOT in public/ where
-// Vercel's CDN would serve it to anyone who guesses the filename.
+// Vercel's CDN would serve it to anyone who guessed the filename.
 //
 // Setup
 // -----
-// 1. Pipeline writes ../bess-dashboard/data/calculator_feed.json
-//    (calculator_feed.py already targets this path)
-// 2. Vercel project settings -> Environment Variables:
-//       GV_FEED_KEY = <long random string>
+// 1. The pipeline writes ../data/calculator_feed.json relative to this file
+//    (calculator_feed.py already targets bess-dashboard/data/).
+// 2. Vercel -> this project -> Settings -> Environment Variables:
+//        GV_FEED_KEY = <long random string>
 //    Generate one with:  openssl rand -hex 32
 // 3. Set the identical value in the BESS Calculator project.
 //
-// The JSON is imported rather than read from disk so Vercel bundles it into the
-// function at build time — no filesystem or includeFiles configuration needed.
+// The .mjs extension forces ESM regardless of what package.json says, and
+// createRequire loads the JSON without needing import assertions. The file is
+// resolved statically so Vercel bundles it into the function at build time —
+// no vercel.json includeFiles needed.
 
-import feed from "../data/calculator_feed.json";
+import { createRequire } from "module";
+
+const require = createRequire(import.meta.url);
+const feed = require("../data/calculator_feed.json");
 
 // Constant-time comparison so response latency cannot be used to recover the key
 function safeEqual(a, b) {
@@ -44,8 +50,7 @@ export default function handler(req, res) {
   }
 
   // Intentionally no Access-Control-Allow-Origin: this is a server-to-server
-  // endpoint. A browser must not be able to call it from a page.
+  // endpoint and a browser must not be able to call it from a page.
   res.setHeader("Cache-Control", "public, max-age=300, s-maxage=300");
   return res.status(200).json(feed);
 }
-

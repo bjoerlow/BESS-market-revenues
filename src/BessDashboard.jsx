@@ -13,8 +13,8 @@ const S={
 };
 const SIDS=Object.keys(S),DURS=[1,2];
 const TR=[{k:6,l:{sv:"6 mån",en:"6 mo"}},{k:12,l:{sv:"12 mån",en:"12 mo"}},{k:24,l:{sv:"24 mån",en:"24 mo"}},{k:0,l:{sv:"Alla",en:"All"}}];
-const FH={1:16,2:20,4:24},OE={1:3,2:5,4:8},CH={1:12,2:16,4:20},CB={1:12,2:8,4:4},CE={1:2,2:3,4:5};
-const OH={1:16,2:24,4:24},OB={1:8,2:0,4:0},EM={1:1.0,2:1.8,4:3.2};
+const FH={1:16,2:20,4:24},OE={1:2.5,2:5,4:8},CH={1:12,2:16,4:20},CB={1:12,2:8,4:4},CE={1:2,2:3,4:5};
+const OH={1:24,2:24,4:24},OB={1:0,2:0,4:0},EM={1:1.0,2:1.8,4:3.2},GV1H=0.90;
 function lo(a,b){return a<b?a:b;}
 
 const TXT={
@@ -48,7 +48,7 @@ const TXT={
   ofActual:"av faktiskt utfall",monthsShort:"mån",validatedIn:"validerat mot",
   notModelled:"ny strategigeneration — ej modellerad",
   fPhys:"Uthållighetsfysik",fPhysB:"FCR-N: 1h→16h, 2h→20h|FCR-D: oberoende av uthållighet|FCR-N+D: 0.5 MW vardera|GV mFRR 2h: kräver 2,5h BESS|4h utelämnad tills benchmark finns",
-  fPart:"mFRR deltagande",fPartB:"Konv: 1h→12h, 2h→16h/dygn|GV: 1h→16h+8h FCR-D, 2h→24h|Riktning vald på faktisk månadsintäkt",
+  fPart:"mFRR deltagande",fPartB:"Konv: 1h→12h, 2h→16h/dygn|GV: 24h/dygn CM båda uthålligheterna|1h: färre aktiveringar och halva MWh intradag|Riktning vald på faktisk månadsintäkt",
   fSrc:"Datakällor",fSrcB:"FCR-N/D: Mimer (SVK)|mFRR CM/EAM: Mimer CSV (manuell)|Intraday: Nord Pool / DA-proxy|Day-ahead: ENTSO-E TP",
   fCalc:"Beräkning",fCalcB:"8 strategier × 2 uthålligheter|RTE: 90% · FCR-D upp/ned: 87%|Intradag: 75%/50% capture|GV intradag: 90%/75% capture|DA: 85% capture, ~8% obalans|Marknadstak: LP per kvart, 1,3 cykler/dygn"},
  en:{sub:"Revenue analysis by service and strategy",synth:"Synthetic data",pipe:"Pipeline data",
@@ -81,7 +81,7 @@ const TXT={
   ofActual:"of actual outcome",monthsShort:"mo",validatedIn:"validated against",
   notModelled:"new strategy generation — not modelled",
   fPhys:"Duration physics",fPhysB:"FCR-N: 1h→16h, 2h→20h|FCR-D: independent of duration|FCR-N+D: 0.5 MW each|GV mFRR 2h: requires 2.5h BESS|4h omitted until benchmark exists",
-  fPart:"mFRR participation",fPartB:"Conv: 1h→12h, 2h→16h/day|GV: 1h→16h+8h FCR-D, 2h→24h|Direction chosen on actual monthly revenue",
+  fPart:"mFRR participation",fPartB:"Conv: 1h→12h, 2h→16h/day|GV: 24h/day CM at both durations|1h: fewer activations, half the intraday MWh|Direction chosen on actual monthly revenue",
   fSrc:"Data sources",fSrcB:"FCR-N/D: Mimer (SVK)|mFRR CM/EAM: Mimer CSV (manual)|Intraday: Nord Pool / DA proxy|Day-ahead: ENTSO-E TP",
   fCalc:"Calculation",fCalcB:"8 strategies × 2 durations|RTE: 90% · FCR-D up/down: 87%|Intraday: 75%/50% capture|GV intraday: 90%/75% capture|DA: 85% capture, ~8% imbalance|Ceiling: LP per quarter, 1.3 cycles/day"}
 };
@@ -121,7 +121,7 @@ function genArea(){
       const oeam=has&&oep>0?OE[dur]*act*oep*days*rte:0;
       const obf=(fu+fd)*0.87*OB[dur]*days;
       const gvid=dur*sp*rte*days*(0.90+0.75);
-      const v5=ocm+oeam+obf+gvid;
+      const v5=(ocm+oeam+obf+gvid)*(dur===1?GV1H:1);
       const v6=eff*sp*rte*days*0.75;
       const v7=eff*sp*rte*days*1.25;
       const dg=eff*dr*rte*days*0.85;

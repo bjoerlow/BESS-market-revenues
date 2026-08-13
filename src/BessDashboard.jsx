@@ -216,7 +216,7 @@ export default function Dashboard(){
     fetch("/monthly_revenue_all.json").then(r=>{if(!r.ok)throw new Error();return r.json();})
       .then(d=>{setRawData(d.areas);setDs("pipeline");})
       .catch(()=>{
-        Promise.all(["SE1","SE2","SE3","SE4","FI"].map(a=>
+        Promise.all(["SE1","SE2","SE3","SE4"].map(a=>
           fetch(`/monthly_revenue_${a}.json`).then(r=>{if(!r.ok)throw new Error();return r.json();}).then(d=>[a,d.months]).catch(()=>[a,null])
         )).then(res=>{const areas={};let f=false;res.forEach(([a,m])=>{if(m){areas[a]=m;f=true;}});
           if(f){setRawData(areas);setDs("pipeline");}else{setRawData(genSyn());setDs("syntetisk");}});
@@ -312,7 +312,7 @@ export default function Dashboard(){
               {ds==="pipeline"&&<span style={{color:grn}}> · ✓ {L.pipe}</span>}</div></div>
           <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
             <span style={{fontSize:9,color:t.dm,textTransform:"uppercase"}}>{L.zone}</span>
-            {["SE1","SE2","SE3","SE4","FI"].map(a=><Pill key={a} active={area===a} onClick={()=>setArea(a)} t={t}>{a}</Pill>)}
+            {["SE1","SE2","SE3","SE4"].map(a=><Pill key={a} active={area===a} onClick={()=>setArea(a)} t={t}>{a}</Pill>)}
             <div style={{width:1,height:18,background:t.bd,margin:"0 4px"}}/>
             <span style={{fontSize:9,color:t.dm,textTransform:"uppercase"}}>MW</span>
             <input type="number" min={0.5} max={200} step={0.5} value={mw} onChange={e=>setMw(Number(e.target.value)||1)}

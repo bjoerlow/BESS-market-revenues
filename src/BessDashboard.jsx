@@ -14,7 +14,7 @@ const S={
 const SIDS=Object.keys(S),DURS=[1,2];
 const TR=[{k:6,l:{sv:"6 mån",en:"6 mo"}},{k:12,l:{sv:"12 mån",en:"12 mo"}},{k:24,l:{sv:"24 mån",en:"24 mo"}},{k:0,l:{sv:"Alla",en:"All"}}];
 const FH={1:16,2:20,4:24},OE={1:2.5,2:5,4:8},CH={1:12,2:16,4:20},CB={1:12,2:8,4:4},CE={1:2,2:3,4:5};
-const OH={1:24,2:24,4:24},OB={1:0,2:0,4:0},EM={1:1.0,2:1.8,4:3.2},GV1H=0.90;
+const OH={1:24,2:24,4:24},OB={1:0,2:0,4:0},EM={1:1.0,2:1.8,4:3.2};
 function lo(a,b){return a<b?a:b;}
 
 const TXT={
@@ -121,7 +121,7 @@ function genArea(){
       const oeam=has&&oep>0?OE[dur]*act*oep*days*rte:0;
       const obf=(fu+fd)*0.87*OB[dur]*days;
       const gvid=dur*sp*rte*days*(0.90+0.75);
-      const v5=(ocm+oeam+obf+gvid)*(dur===1?GV1H:1);
+      const v5=ocm+oeam+obf+gvid;
       const v6=eff*sp*rte*days*0.75;
       const v7=eff*sp*rte*days*1.25;
       const dg=eff*dr*rte*days*0.85;

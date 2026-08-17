@@ -13,7 +13,7 @@ const S={
 };
 const SIDS=Object.keys(S),DURS=[1,2];
 const TR=[{k:6,l:{sv:"6 mån",en:"6 mo"}},{k:12,l:{sv:"12 mån",en:"12 mo"}},{k:24,l:{sv:"24 mån",en:"24 mo"}},{k:0,l:{sv:"Alla",en:"All"}}];
-const FH={1:24,2:24,4:24},FCR_DUAL=0.87,USABLE=0.90,LOT=0.1,NEM_N=0.12,NEM_D=0.02,OE={1:2.5,2:5,4:8},CH={1:12,2:16,4:20},CB={1:12,2:8,4:4},CE={1:2,2:3,4:5};
+const FH={1:24,2:24,4:24},FCR_DUAL=0.87,USABLE=0.90,LOT=0.1,NEM_N=0.12,NEM_D=0.02,ACC_N=0.95,ACC_D=0.95,OE={1:2.5,2:5,4:8},CH={1:12,2:16,4:20},CB={1:12,2:8,4:4},CE={1:2,2:3,4:5};
 const OH={1:24,2:24,4:24},OB={1:0,2:0,4:0},EM={1:1.0,2:1.8,4:3.2};
 function lo(a,b){return a<b?a:b;}
 // FCR: budvolymen bär uthållighetseffekten. 87% av märkeffekt i båda
@@ -25,12 +25,22 @@ function nemCost(n,dd,hours,rte,price){
   return (NEM_N*n+NEM_D*dd*2)*hours*(1-rte)*price;
 }
 function fcrnMax(dur){return lot(lo(FCR_DUAL,USABLE*dur/2));}
+// Kombinationen är en diversifieringsstrategi, inte intäktsmaximering:
+// fördela headroomet så jämnt som möjligt i budsteg över båda produkterna.
 function fcrMix(pn,pd,dur){
-  const e=USABLE*dur/2, st=Math.round(FCR_DUAL/LOT); let best=0;
-  for(let i=0;i<=st;i++){const N=i*LOT; if(N>e+1e-9)break;
-    for(let j=0;j<=st-i;j++){const D=j*LOT; if(N+D/3>e+1e-9)break;
-      best=Math.max(best,pn*N+pd*D);}}
-  return best;
+  const e=USABLE*dur/2, cap=lot(FCR_DUAL);
+  let N=0,D=0;
+  const fits=(n,d)=>n+d<=cap+1e-9&&n+d/3<=e+1e-9;
+  for(;;){
+    const order=N<D-1e-9?["N","D"]:(D<N-1e-9?["D","N"]:(pn>=pd?["N","D"]:["D","N"]));
+    let added=false;
+    for(const w of order){
+      if(w==="N"&&fits(N+LOT,D)){N+=LOT;added=true;break;}
+      if(w==="D"&&fits(N,D+LOT)){D+=LOT;added=true;break;}
+    }
+    if(!added)break;
+  }
+  return {v:pn*N+pd*D,N:N,D:D};
 }
 
 const TXT={
@@ -63,7 +73,7 @@ const TXT={
   manualNote:"manuellt satt intradagsspread — ingår ej i valideringen",
   ofActual:"av faktiskt utfall",monthsShort:"mån",validatedIn:"validerat mot",
   notModelled:"ny strategigeneration — ej modellerad",
-  fPhys:"Uthållighetsfysik",fPhysB:"FCR-D: 0,8 MW båda riktningar, 1,0 i en|FCR-N: 0,4 MW (1h) / 0,8 MW (2h)|FCR-N+D: optimal mix per månad|NEM-återhämtning avdragen|GV mFRR 2h: kräver 2,5h BESS|4h utelämnad tills benchmark finns",
+  fPhys:"Uthållighetsfysik",fPhysB:"FCR-D: 0,8 MW båda riktningar, 1,0 i en|FCR-N: 0,4 MW (1h) / 0,8 MW (2h)|FCR-N+D: jämn fördelning, diversifiering|NEM-återhämtning avdragen|Budacceptans 95%|GV mFRR 2h: kräver 2,5h BESS|4h utelämnad tills benchmark finns",
   fPart:"mFRR deltagande",fPartB:"Konv: 1h→12h, 2h→16h/dygn|GV: 24h/dygn CM båda uthålligheterna|1h: färre aktiveringar och halva MWh intradag|Riktning vald på faktisk månadsintäkt",
   fSrc:"Datakällor",fSrcB:"FCR-N/D: Mimer (SVK)|mFRR CM/EAM: Mimer CSV (manuell)|Intraday: Nord Pool / DA-proxy|Day-ahead: ENTSO-E TP",
   fCalc:"Beräkning",fCalcB:"8 strategier × 2 uthålligheter|RTE: 90% · FCR-D upp/ned: 87%|Intradag: 75%/50% capture|GV intradag: 90%/75% capture|DA: 85% capture, ~8% obalans|Marknadstak: LP per kvart, 1,3 cykler/dygn"},
@@ -96,7 +106,7 @@ const TXT={
   manualNote:"manually set intraday spread — excluded from validation",
   ofActual:"of actual outcome",monthsShort:"mo",validatedIn:"validated against",
   notModelled:"new strategy generation — not modelled",
-  fPhys:"Duration physics",fPhysB:"FCR-D: 0.8 MW both directions, 1.0 one|FCR-N: 0.4 MW (1h) / 0.8 MW (2h)|FCR-N+D: optimal mix per month|NEM recovery deducted|GV mFRR 2h: requires 2.5h BESS|4h omitted until benchmark exists",
+  fPhys:"Duration physics",fPhysB:"FCR-D: 0.8 MW both directions, 1.0 one|FCR-N: 0.4 MW (1h) / 0.8 MW (2h)|FCR-N+D: balanced split, diversification|NEM recovery deducted|Bid acceptance 95%|GV mFRR 2h: requires 2.5h BESS|4h omitted until benchmark exists",
   fPart:"mFRR participation",fPartB:"Conv: 1h→12h, 2h→16h/day|GV: 24h/day CM at both durations|1h: fewer activations, half the intraday MWh|Direction chosen on actual monthly revenue",
   fSrc:"Data sources",fSrcB:"FCR-N/D: Mimer (SVK)|mFRR CM/EAM: Mimer CSV (manual)|Intraday: Nord Pool / DA proxy|Day-ahead: ENTSO-E TP",
   fCalc:"Calculation",fCalcB:"8 strategies × 2 durations|RTE: 90% · FCR-D up/down: 87%|Intraday: 75%/50% capture|GV intraday: 90%/75% capture|DA: 85% capture, ~8% imbalance|Ceiling: LP per quarter, 1.3 cycles/day"}
@@ -126,9 +136,11 @@ function genArea(){
     DURS.forEach(dur=>{
       const eff=EM[dur],act=lo(dur,0.25);
       const nMax=fcrnMax(dur), dMax=lot(FCR_DUAL), ePx=dr*0.6||40;
-      const v1=fn*nMax*FH[dur]*days-nemCost(nMax,0,hours,rte,ePx);
-      const v2=(fu+fd)*dMax*hours-nemCost(0,dMax,hours,rte,ePx);
-      const v3=fcrMix(fn,fu+fd,dur)*hours-nemCost(nMax*0.6,dMax*0.4,hours,rte,ePx);
+      const nA=nMax*ACC_N, dA=dMax*ACC_D;
+      const v1=fn*nA*FH[dur]*days-nemCost(nA,0,hours,rte,ePx);
+      const v2=(fu+fd)*dA*hours-nemCost(0,dA,hours,rte,ePx);
+      const mx=fcrMix(fn,fu+fd,dur), mN=mx.N*ACC_N, mD=mx.D*ACC_D;
+      const v3=(fn*mN+(fu+fd)*mD)*hours-nemCost(mN,mD,hours,rte,ePx);
       const ccm=has?bC*CH[dur]*days:0,ceam=has&&bE>0?CE[dur]*act*bE*days*rte:0;
       const v4=ccm+ceam-(ccm+ceam)*0.06+(has?(fu+fd)*0.87*CB[dur]*days:0);
       // mFRR opt: no netting cost, 1h gets FCR-D backfill

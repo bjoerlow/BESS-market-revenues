@@ -442,23 +442,23 @@ export default function Dashboard(){
                   fill={full?t.tx:"none"} stroke={full?t.bg:t.tx} strokeWidth={2}/>;}}
               connectNulls={false} legendType="circle"/>}
           </ComposedChart></ResponsiveContainer>
-          {vers.length>0&&(<div style={{marginTop:10,display:"flex",gap:14,flexWrap:"wrap",fontSize:10,color:t.dm}}>
+          {vers.length>0&&(<div style={{marginTop:10,display:"flex",gap:14,flexWrap:"wrap",fontSize:10.5,color:t.mu}}>
             {vers.map(v=>(<span key={v.from}><strong style={{color:t.mu}}>{v.label}</strong> {v.at} — {v.note}</span>))}</div>)}
           {hasBench&&bench&&(<div style={{marginTop:8,paddingTop:8,borderTop:`1px solid ${t.bd}`,
-            fontSize:10,color:t.dm,lineHeight:1.6}}>
-            <span style={{color:t.mu}}>{bench.source?.name} {bench.source?.copyright}</span>
+            fontSize:10.5,color:t.mu,lineHeight:1.65}}>
+            <span style={{color:t.tx,fontWeight:500}}>{bench.source?.name} {bench.source?.copyright}</span>
             {bench.source?.delivered_by?` · ${bench.source.delivered_by}`:""}
             {benchSum&&<> · {L.vsIndex}: {fmtE(benchSum.gv)} / {fmtE(benchSum.idx)}
               {" = "}<strong style={{color:t.mu}}>{(benchSum.gv/benchSum.idx*100).toFixed(0)}%</strong></>}
             <br/>{bench.methodology?.[lang==="en"?"note_en":"note_sv"]||L.benchNote}
             {benchSum?.corr?.map(m=>(<span key={m.ym}><br/>✎ {m.label} — {m.benchNote||L.benchPartial}</span>))}
           </div>)}
-          {proxyMonths.length>0&&(<div style={{marginTop:6,fontSize:10,color:t.dm}}>
+          {proxyMonths.length>0&&(<div style={{marginTop:6,fontSize:10.5,color:t.mu}}>
             ⚠ {proxyMonths.map(m=>m.label).join(", ")} — {L.proxyNote}</div>)}
           {manualMonths.length>0&&(<div style={{marginTop:4,fontSize:10,color:amb}}>
             ✎ {manualMonths.map(m=>m.label).join(", ")} — {L.manualNote}</div>)}
           {monthsA.filter(m=>m.actAvail!=null&&m.actAvail<0.999).map(m=>(
-            <div key={m.ym} style={{marginTop:6,fontSize:10,color:t.dm}}>
+            <div key={m.ym} style={{marginTop:6,fontSize:10.5,color:t.mu}}>
               ○ {m.label} · {L.avail} {(m.actAvail*100).toFixed(0)}% · {m.actNote} · {L.adjNote}: {fmtE(m.actualNorm)}</div>))}
           </Card>)}
 

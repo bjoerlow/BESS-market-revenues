@@ -69,13 +69,15 @@ const TXT={
   monthCol:"Mån",sum:"SUMMA",actual:"Faktiskt utfall",modelDev:"Modellen ligger inom",avail:"tillgänglighet",
   adjNote:"justerat för tillgänglighet",
   measured:"mätt intradagsdata",proxyDev:"proxymånader",
+  benchNote:"Indexet omfattar aFRR och FFR som inte ingår i strategierna, och bygger på 85% verkningsgrad och full användbar energi. Värdena visas oförändrade.",
+  vsIndex:"mot index",benchPartial:"korrigerat värde ur CH:s annualiserade tal",
   proxyNote:"härledd intradagsspread (day-ahead × 1,2) — osäker när marknaderna frikopplas",
   manualNote:"manuellt satt intradagsspread — ingår ej i valideringen",
   ofActual:"av faktiskt utfall",monthsShort:"mån",validatedIn:"validerat mot",
   notModelled:"ny strategigeneration — ej modellerad",
   fPhys:"Uthållighetsfysik",fPhysB:"FCR-D: 0,8 MW båda riktningar, 1,0 i en|FCR-N: 0,4 MW (1h) / 0,8 MW (2h)|FCR-N+D: jämn fördelning, diversifiering|NEM-återhämtning avdragen|Budacceptans 95%|GV mFRR 2h: kräver 2,5h BESS|4h utelämnad tills benchmark finns",
   fPart:"mFRR deltagande",fPartB:"Konv: 1h→12h, 2h→16h/dygn|GV: 24h/dygn CM båda uthålligheterna|1h: färre aktiveringar och halva MWh intradag|Riktning vald på faktisk månadsintäkt",
-  fSrc:"Datakällor",fSrcB:"FCR-N/D: Mimer (SVK)|mFRR CM/EAM: Mimer CSV (manuell)|Intraday: Nord Pool / DA-proxy|Day-ahead: ENTSO-E TP",
+  fSrc:"Datakällor",fSrcB:"FCR-N/D: Mimer (SVK)|mFRR CM/EAM: Mimer CSV (manuell)|Intraday: Nord Pool / DA-proxy|Day-ahead: ENTSO-E TP|Benchmark: Clean Horizon Index",
   fCalc:"Beräkning",fCalcB:"8 strategier × 2 uthålligheter|RTE: 90% · FCR-D upp/ned: 87%|Intradag: 75%/50% capture|GV intradag: 90%/75% capture|DA: 85% capture, ~8% obalans|Marknadstak: LP per kvart, 1,3 cykler/dygn"},
  en:{sub:"Revenue analysis by service and strategy",synth:"Synthetic data",pipe:"Pipeline data",
   zone:"Bidding zone",dura:"Duration",period:"Period",light:"☀ Light",dark:"● Dark",show:"Show",
@@ -102,13 +104,15 @@ const TXT={
   monthCol:"Month",sum:"TOTAL",actual:"Actual outcome",modelDev:"Model within",avail:"availability",
   adjNote:"adjusted for availability",
   measured:"measured intraday data",proxyDev:"proxy months",
+  benchNote:"The index covers aFRR and FFR, which the strategies do not, and assumes 85% round-trip efficiency and full usable energy. Values are shown unmodified.",
+  vsIndex:"vs index",benchPartial:"value corrected from CH annualised figure",
   proxyNote:"derived intraday spread (day-ahead × 1.2) — unreliable when the markets decouple",
   manualNote:"manually set intraday spread — excluded from validation",
   ofActual:"of actual outcome",monthsShort:"mo",validatedIn:"validated against",
   notModelled:"new strategy generation — not modelled",
   fPhys:"Duration physics",fPhysB:"FCR-D: 0.8 MW both directions, 1.0 one|FCR-N: 0.4 MW (1h) / 0.8 MW (2h)|FCR-N+D: balanced split, diversification|NEM recovery deducted|Bid acceptance 95%|GV mFRR 2h: requires 2.5h BESS|4h omitted until benchmark exists",
   fPart:"mFRR participation",fPartB:"Conv: 1h→12h, 2h→16h/day|GV: 24h/day CM at both durations|1h: fewer activations, half the intraday MWh|Direction chosen on actual monthly revenue",
-  fSrc:"Data sources",fSrcB:"FCR-N/D: Mimer (SVK)|mFRR CM/EAM: Mimer CSV (manual)|Intraday: Nord Pool / DA proxy|Day-ahead: ENTSO-E TP",
+  fSrc:"Data sources",fSrcB:"FCR-N/D: Mimer (SVK)|mFRR CM/EAM: Mimer CSV (manual)|Intraday: Nord Pool / DA proxy|Day-ahead: ENTSO-E TP|Benchmark: Clean Horizon Index",
   fCalc:"Calculation",fCalcB:"8 strategies × 2 durations|RTE: 90% · FCR-D up/down: 87%|Intraday: 75%/50% capture|GV intraday: 90%/75% capture|DA: 85% capture, ~8% imbalance|Ceiling: LP per quarter, 1.3 cycles/day"}
 };
 
@@ -236,6 +240,7 @@ export default function Dashboard(){
   const[rawData,setRawData]=useState(null),[ds,setDs]=useState("syntetisk");
   const[tmax,setTmax]=useState(null);
   const[acts,setActs]=useState(null);
+  const[bench,setBench]=useState(null);
   const[tr,setTr]=useState(12),[isDark,setIsDark]=useState(true);
   const[lang,setLang]=useState("sv");
   const t=isDark?dk:lt;
@@ -257,6 +262,8 @@ export default function Dashboard(){
       .then(d=>setTmax(d.areas)).catch(()=>setTmax(null));
     fetch("/actuals.json").then(r=>{if(!r.ok)throw new Error();return r.json();})
       .then(d=>setActs(d)).catch(()=>setActs(null));
+    fetch("/benchmark.json").then(r=>{if(!r.ok)throw new Error();return r.json();})
+      .then(d=>setBench(d)).catch(()=>setBench(null));
   },[]);
 
   const toggle=useCallback(id=>{setSel(p=>{const n=new Set(p);n.has(id)?(n.size>1&&n.delete(id)):n.add(id);return n;});},[]);
@@ -294,6 +301,24 @@ export default function Dashboard(){
            actualNorm:Math.round(a.total/av/(a.mw||1)*mw),actAvail:av,actNote:a.note||""};}),
     [months,mAct,mw]);
   const hasAct=monthsA.some(m=>m.actual!=null);
+
+  // Clean Horizon-index: visas oförändrat, skalas bara med MW
+  const bArea=useMemo(()=>(bench&&bench.index&&bench.index[area])||[],[bench,area]);
+  const monthsB=useMemo(()=>{
+    if(!bArea.length)return monthsA;
+    const map={};bArea.forEach(r=>{map[r.year_month]=r;});
+    return monthsA.map(m=>{const b=map[m.ym];if(!b)return m;
+      const v=b[`h${dur}`];
+      return v==null?m:{...m,bench:Math.round(v*mw),benchFlag:b.flag||null,
+        benchNote:b[lang==="en"?"note_en":"note_sv"]||null};});
+  },[monthsA,bArea,dur,mw,lang]);
+  const hasBench=monthsB.some(m=>m.bench>0);
+  const benchSum=useMemo(()=>{
+    const p=monthsB.filter(m=>m.bench>0&&m.mfrr_opt>0);
+    if(!p.length)return null;
+    return{n:p.length,idx:p.reduce((a,m)=>a+m.bench,0),gv:p.reduce((a,m)=>a+m.mfrr_opt,0),
+           corr:p.filter(m=>m.benchFlag==="corrected")};
+  },[monthsB]);
   const valid=useMemo(()=>{
     const p=monthsA.filter(m=>m.actualNorm>0&&m.mfrr_opt>0);
     if(!p.length)return null;
@@ -372,7 +397,9 @@ export default function Dashboard(){
           ⚠ <strong>{L.noData}</strong> {L.noDataRest}</div>)}
         <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}}>
           <KPI label={`${L.ceiling} ${N} ${L.mo} (${dur}h)`} value={hasT?fmtE(ann.tmax):"—"} sub={L.foresight} color={isDark?"#94a3b8":"#64748b"} t={t}/>
-          <KPI label={S.mfrr_opt.l[lang]} value={fmtE(ann.mfrr_opt)} sub={hasT?`${(ann.mfrr_opt/ann.tmax*100).toFixed(0)}% ${L.ofCeil}${dur===2?` · ${L.reqBess}`:""}`:(dur===2?L.reqBess:"")} color={sc("mfrr_opt")} t={t}/>
+          <KPI label={S.mfrr_opt.l[lang]} value={fmtE(ann.mfrr_opt)} sub={[hasT?`${(ann.mfrr_opt/ann.tmax*100).toFixed(0)}% ${L.ofCeil}`:null,
+                 benchSum?`${(benchSum.gv/benchSum.idx*100).toFixed(0)}% ${L.vsIndex}`:null,
+                 dur===2?L.reqBess:null].filter(Boolean).join(" · ")} color={sc("mfrr_opt")} t={t}/>
           <KPI label={S.mfrr_conv.l[lang]} value={fmtE(ann.mfrr_conv)} sub={hasT?`${(ann.mfrr_conv/ann.tmax*100).toFixed(0)}% ${L.ofCeil}`:""} color={sc("mfrr_conv")} t={t}/>
           <KPI label="FCR-N + FCR-D" value={fmtE(ann.fcrn_fcrd)} sub={hasT?`${(ann.fcrn_fcrd/ann.tmax*100).toFixed(0)}% ${L.ofCeil}`:""} color={sc("fcrn_fcrd")} t={t}/>
           <KPI label="Day-ahead" value={fmtE(ann.dayahead)} sub={L.inclImb} color={sc("dayahead")} warn t={t}/>
@@ -398,13 +425,16 @@ export default function Dashboard(){
           {SIDS.map(sid=><Pill key={sid} active={sel.has(sid)} color={sc(sid)} onClick={()=>toggle(sid)} t={t}>{S[sid].l[lang]}</Pill>)}</div>)}
 
         {view==="comparison"&&(<Card title={`${L.tComparison} — ${dur}h (${mw*dur} MWh)`} sub={`${L.eurMo} · ${tr?`${L.last} ${tr}`:L.allMonths.split(" ")[0]} ${L.months}`} t={t}>
-          <ResponsiveContainer width="100%" height={400}><ComposedChart data={monthsA} margin={{top:18,right:12,bottom:5,left:0}}>
+          <ResponsiveContainer width="100%" height={400}><ComposedChart data={monthsB} margin={{top:18,right:12,bottom:5,left:0}}>
             <CartesianGrid strokeDasharray="3 3" stroke={t.cG}/><XAxis {...xP}/><YAxis {...yP}/>
             <Tooltip content={<TT theme={t}/>}/><Legend wrapperStyle={{fontSize:10,fontFamily:"'Plus Jakarta Sans'"}}/>
             {vers.map(v=>(<ReferenceLine key={v.from} x={v.at} stroke={t.mu} strokeDasharray="2 4"
               label={{value:v.label,position:"top",fill:t.mu,fontSize:9}}/>))}
             {SIDS.filter(s=>sel.has(s)).map(sid=>(<Bar key={sid} dataKey={sid} name={S[sid].l[lang]} fill={sc(sid)} opacity={0.6} radius={[2,2,0,0]}/>))}
             {hasT&&<Line dataKey="tmax" name={L.ceiling} stroke={T_GREY} strokeWidth={2} strokeDasharray="6 3" dot={false}/>}
+            {hasBench&&<Line dataKey="bench" name={bench?.source?.[lang==="en"?"label_en":"label_sv"]||"Clean Horizon Index"}
+              stroke={isDark?"#64748b":"#94a3b8"} strokeWidth={1.5} strokeDasharray="2 3"
+              dot={{r:2}} connectNulls={false}/>}
             {hasAct&&<Line dataKey="actual" name={L.actual} stroke={t.tx} strokeWidth={0}
               dot={p=>{if(p.payload?.actual==null)return<g key={p.index}/>;
                 const full=(p.payload.actAvail??1)>=0.999;
@@ -414,6 +444,15 @@ export default function Dashboard(){
           </ComposedChart></ResponsiveContainer>
           {vers.length>0&&(<div style={{marginTop:10,display:"flex",gap:14,flexWrap:"wrap",fontSize:10,color:t.dm}}>
             {vers.map(v=>(<span key={v.from}><strong style={{color:t.mu}}>{v.label}</strong> {v.at} — {v.note}</span>))}</div>)}
+          {hasBench&&bench&&(<div style={{marginTop:8,paddingTop:8,borderTop:`1px solid ${t.bd}`,
+            fontSize:10,color:t.dm,lineHeight:1.6}}>
+            <span style={{color:t.mu}}>{bench.source?.name} {bench.source?.copyright}</span>
+            {bench.source?.delivered_by?` · ${bench.source.delivered_by}`:""}
+            {benchSum&&<> · {L.vsIndex}: {fmtE(benchSum.gv)} / {fmtE(benchSum.idx)}
+              {" = "}<strong style={{color:t.mu}}>{(benchSum.gv/benchSum.idx*100).toFixed(0)}%</strong></>}
+            <br/>{bench.methodology?.[lang==="en"?"note_en":"note_sv"]||L.benchNote}
+            {benchSum?.corr?.map(m=>(<span key={m.ym}><br/>✎ {m.label} — {m.benchNote||L.benchPartial}</span>))}
+          </div>)}
           {proxyMonths.length>0&&(<div style={{marginTop:6,fontSize:10,color:t.dm}}>
             ⚠ {proxyMonths.map(m=>m.label).join(", ")} — {L.proxyNote}</div>)}
           {manualMonths.length>0&&(<div style={{marginTop:4,fontSize:10,color:amb}}>
@@ -528,15 +567,18 @@ export default function Dashboard(){
           <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:11,fontFamily:"'JetBrains Mono'"}}>
             <thead><tr style={{borderBottom:`2px solid ${t.bd}`}}>
               <th style={{...thS,textAlign:"left"}}>{L.monthCol}</th>
+              {hasBench&&<th style={{...thS,color:t.dm}}>Index</th>}
               {SIDS.filter(s=>sel.has(s)).map(sid=>(<th key={sid} style={{...thS,color:sc(sid)}}>{S[sid].s[lang]}</th>))}
             </tr></thead>
-            <tbody>{months.map((m,i)=>(<tr key={i} style={{borderBottom:`1px solid ${t.bd}`,background:i%2?t.bg+"66":"transparent"}}>
+            <tbody>{monthsB.map((m,i)=>(<tr key={i} style={{borderBottom:`1px solid ${t.bd}`,background:i%2?t.bg+"66":"transparent"}}>
               <td style={{padding:"5px 6px",fontWeight:500,fontSize:10,fontFamily:"'Plus Jakarta Sans'"}}>{m.label}</td>
+              {hasBench&&<td style={{padding:"5px 6px",textAlign:"right",color:t.dm}}>{m.bench?fmt(m.bench):"—"}</td>}
               {(()=>{const vis=SIDS.filter(s=>sel.has(s));const bs=vis.reduce((a,s)=>(m[s]||0)>(m[a]||0)?s:a,vis[0]);
                 return vis.map(sid=>(<td key={sid} style={{padding:"5px 6px",textAlign:"right",color:sid===bs?sc(sid):t.dm,fontWeight:sid===bs?500:400}}>{fmt(m[sid])}</td>));})()}</tr>))}</tbody>
             <tfoot><tr style={{borderTop:`2px solid ${t.bL}`}}>
               <td style={{padding:"6px",fontWeight:500,fontFamily:"'Plus Jakarta Sans'"}}>{L.sum}</td>
-              {SIDS.filter(s=>sel.has(s)).map(sid=>(<td key={sid} style={{padding:"6px",textAlign:"right",fontWeight:500}}>{fmt(months.reduce((a,m)=>a+(m[sid]||0),0))}</td>))}
+              {hasBench&&<td style={{padding:"6px",textAlign:"right",color:t.dm}}>{fmt(monthsB.reduce((a,m)=>a+(m.bench||0),0))}</td>}
+              {SIDS.filter(s=>sel.has(s)).map(sid=>(<td key={sid} style={{padding:"6px",textAlign:"right",fontWeight:500}}>{fmt(monthsB.reduce((a,m)=>a+(m[sid]||0),0))}</td>))}
             </tr></tfoot></table></div></Card>)}
 
         <div style={{marginTop:20,padding:16,background:t.card,border:`1px solid ${t.bd}`,borderRadius:12,display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:16,fontSize:10,color:t.mu,lineHeight:1.7}}>

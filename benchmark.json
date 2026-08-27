@@ -1,0 +1,211 @@
+{
+  "_comment": "Clean Horizon Storage Index © Clean Horizon, levererat via Nord Pool. Underhålls för hand. Värdena visas oförändrade — ingen omräkning görs. Metodikskillnader mot vår modell listas i 'methodology'.",
+  "source": {
+    "name": "Clean Horizon Storage Index",
+    "copyright": "© Clean Horizon",
+    "delivered_by": "Nord Pool",
+    "url": "https://www.cleanhorizon.com/battery-index/",
+    "label_sv": "Clean Horizon Index",
+    "label_en": "Clean Horizon Index"
+  },
+  "methodology": {
+    "markets_sv": "Day-ahead, intradag, FCR-N, FCR-D upp/ned, FFR, aFRR (kapacitet + energi), mFRR (kapacitet + energi)",
+    "markets_en": "Day-ahead, intraday, FCR-N, FCR-D up/down, FFR, aFRR (capacity + energy), mFRR (capacity + energy)",
+    "note_sv": "Indexet omfattar aFRR och FFR som GreenVoltis inte budar mot. Antaganden: 85% verkningsgrad (vår modell 90%), 1,5 cykler/dygn, 100% tillgänglighet, användbar energi = märkeffekt × uthållighet (vår modell 90%). Värdena visas oförändrade — jämförelsen är därför inte helt likvärdig.",
+    "note_en": "The index covers aFRR and FFR, which GreenVoltis does not bid into. Assumptions: 85% round-trip efficiency (our model 90%), 1.5 cycles/day, 100% availability, usable energy = rated power × duration (our model 90%). Values are shown unmodified, so the comparison is not fully like-for-like."
+  },
+  "index": {
+    "SE1": [
+      {
+        "year_month": "2026-01",
+        "h1": 14215.46,
+        "h2": 20091.48,
+        "h4": 20813.51
+      },
+      {
+        "year_month": "2026-02",
+        "h1": 12601.63,
+        "h2": 19160.71,
+        "h4": 20545.43
+      },
+      {
+        "year_month": "2026-03",
+        "h1": 11727.92,
+        "h2": 19300.06,
+        "h4": 19647.35
+      },
+      {
+        "year_month": "2026-04",
+        "h1": 12153.68,
+        "h2": 20231.54,
+        "h4": 21516.28
+      },
+      {
+        "year_month": "2026-05",
+        "h1": 4221.7,
+        "h2": 14167.0,
+        "h4": 6205.45,
+        "corrected": true,
+        "flag": "corrected",
+        "note_sv": "Korrigerat: Clean Horizons annualiserade 170 kEUR/MW ÷ 12",
+        "note_en": "Corrected: Clean Horizon annualised 170 kEUR/MW ÷ 12"
+      },
+      {
+        "year_month": "2026-06",
+        "h1": 12110.74,
+        "h2": 17534.26,
+        "h4": 20166.81
+      },
+      {
+        "year_month": "2026-07",
+        "h1": 9091.73,
+        "h2": 13620.66,
+        "h4": 14309.45
+      }
+    ],
+    "SE2": [
+      {
+        "year_month": "2026-01",
+        "h1": 14057.7,
+        "h2": 19983.39,
+        "h4": 20641.53
+      },
+      {
+        "year_month": "2026-02",
+        "h1": 12430.24,
+        "h2": 18532.21,
+        "h4": 19888.2
+      },
+      {
+        "year_month": "2026-03",
+        "h1": 11239.09,
+        "h2": 18452.55,
+        "h4": 18880.64
+      },
+      {
+        "year_month": "2026-04",
+        "h1": 10369.49,
+        "h2": 16736.88,
+        "h4": 17519.57
+      },
+      {
+        "year_month": "2026-05",
+        "h1": 4506.11,
+        "h2": 14167.0,
+        "h4": 6741.87,
+        "corrected": true,
+        "flag": "corrected",
+        "note_sv": "Korrigerat: Clean Horizons annualiserade 170 kEUR/MW ÷ 12",
+        "note_en": "Corrected: Clean Horizon annualised 170 kEUR/MW ÷ 12"
+      },
+      {
+        "year_month": "2026-06",
+        "h1": 11689.2,
+        "h2": 16522.4,
+        "h4": 19482.42
+      },
+      {
+        "year_month": "2026-07",
+        "h1": 8284.16,
+        "h2": 12384.74,
+        "h4": 13099.81
+      }
+    ],
+    "SE3": [
+      {
+        "year_month": "2026-01",
+        "h1": 6588.5,
+        "h2": 9696.47,
+        "h4": 13055.43
+      },
+      {
+        "year_month": "2026-02",
+        "h1": 12265.98,
+        "h2": 17049.89,
+        "h4": 18388.55
+      },
+      {
+        "year_month": "2026-03",
+        "h1": 9277.76,
+        "h2": 13832.47,
+        "h4": 15682.86
+      },
+      {
+        "year_month": "2026-04",
+        "h1": 8021.34,
+        "h2": 11988.43,
+        "h4": 14439.33
+      },
+      {
+        "year_month": "2026-05",
+        "h1": 5487.73,
+        "h2": 14167.0,
+        "h4": 10829.36,
+        "corrected": true,
+        "note_sv": "Korrigerat: Clean Horizons annualiserade 170 kEUR/MW ÷ 12",
+        "note_en": "Corrected: Clean Horizon annualised 170 kEUR/MW ÷ 12",
+        "flag": "corrected"
+      },
+      {
+        "year_month": "2026-06",
+        "h1": 9713.79,
+        "h2": 13507.13,
+        "h4": 17201.99
+      },
+      {
+        "year_month": "2026-07",
+        "h1": 7458.2,
+        "h2": 10707.85,
+        "h4": 14304.64
+      }
+    ],
+    "SE4": [
+      {
+        "year_month": "2026-01",
+        "h1": 7434.47,
+        "h2": 10807.03,
+        "h4": 12447.27
+      },
+      {
+        "year_month": "2026-02",
+        "h1": 12659.72,
+        "h2": 17992.38,
+        "h4": 19783.26
+      },
+      {
+        "year_month": "2026-03",
+        "h1": 14233.69,
+        "h2": 22320.73,
+        "h4": 24948.22
+      },
+      {
+        "year_month": "2026-04",
+        "h1": 9322.74,
+        "h2": 14010.13,
+        "h4": 17365.67
+      },
+      {
+        "year_month": "2026-05",
+        "h1": 6567.1,
+        "h2": 14167.0,
+        "h4": 13369.3,
+        "corrected": true,
+        "flag": "corrected",
+        "note_sv": "Korrigerat: Clean Horizons annualiserade 170 kEUR/MW ÷ 12",
+        "note_en": "Corrected: Clean Horizon annualised 170 kEUR/MW ÷ 12"
+      },
+      {
+        "year_month": "2026-06",
+        "h1": 12870.34,
+        "h2": 18355.29,
+        "h4": 23473.97
+      },
+      {
+        "year_month": "2026-07",
+        "h1": 12937.89,
+        "h2": 20353.63,
+        "h4": 25843.75
+      }
+    ]
+  }
+}

@@ -1,6 +1,6 @@
 {
   "_comment": "Faktiskt utfall och strategiversioner. Underhålls för hand. total = verkligt utfall i EUR för hela anläggningen, aldrig justerat. availability = andel av månaden anläggningen var i drift (1.0 = hela); utfallet plottas som det blev, valideringen räknar mot total/availability. components är valfritt men gör felsökning på komponentnivå möjlig.",
-  "strategy_versions": [
+  "strategy_versions": []
     {
       "from": "2025-09",
       "label": "GreenVoltis v1",

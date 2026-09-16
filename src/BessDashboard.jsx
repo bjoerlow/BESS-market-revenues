@@ -69,6 +69,13 @@ const TXT={
   monthCol:"Mån",sum:"SUMMA",actual:"Faktiskt utfall",modelDev:"Modellen ligger inom",avail:"tillgänglighet",
   adjNote:"justerat för tillgänglighet",
   measured:"mätt intradagsdata",proxyDev:"proxymånader",
+  tSystem:"Systemkalkyl",effect:"Effekt",energy:"Energi",crate:"C-tal",
+  sysTitle:"Intäkt för ett specifikt system",
+  sysSub:"Ange effekt och energi. Beräkningen använder samma strategimodell som zonjämförelsen.",
+  sysTotal:"Totalt",sysPerMw:"per MW",sysPerMwh:"per MWh",
+  sysModelled:"Över C/2,5 finns ingen anläggning att kalibrera mot — siffran är enbart modellerad.",
+  sysMax:"Maximalt C/4. Ange mer effekt eller mindre energi.",
+  sysNoGrid:"Kör om pipelinen för att få C-talsrutnätet i monthly_revenue_all.json.",
   benchNote:"Indexet omfattar aFRR och FFR som inte ingår i strategierna, och bygger på 85% verkningsgrad och full användbar energi. Värdena visas oförändrade.",
   vsIndex:"mot index",benchPartial:"korrigerat värde ur CH:s annualiserade tal",
   proxyNote:"härledd intradagsspread (day-ahead × 1,2) — osäker när marknaderna frikopplas",
@@ -104,6 +111,13 @@ const TXT={
   monthCol:"Month",sum:"TOTAL",actual:"Actual outcome",modelDev:"Model within",avail:"availability",
   adjNote:"adjusted for availability",
   measured:"measured intraday data",proxyDev:"proxy months",
+  tSystem:"System calculator",effect:"Power",energy:"Energy",crate:"C-rate",
+  sysTitle:"Revenue for a specific system",
+  sysSub:"Enter power and energy. Uses the same strategy model as the zone comparison.",
+  sysTotal:"Total",sysPerMw:"per MW",sysPerMwh:"per MWh",
+  sysModelled:"Above C/2.5 there is no site to calibrate against — the figure is modelled only.",
+  sysMax:"Maximum C/4. Increase power or reduce energy.",
+  sysNoGrid:"Re-run the pipeline to get the C-rate grid into monthly_revenue_all.json.",
   benchNote:"The index covers aFRR and FFR, which the strategies do not, and assumes 85% round-trip efficiency and full usable energy. Values are shown unmodified.",
   vsIndex:"vs index",benchPartial:"value corrected from CH annualised figure",
   proxyNote:"derived intraday spread (day-ahead × 1.2) — unreliable when the markets decouple",
@@ -243,6 +257,7 @@ export default function Dashboard(){
   const[bench,setBench]=useState(null);
   const[tr,setTr]=useState(12),[isDark,setIsDark]=useState(true);
   const[lang,setLang]=useState("sv");
+  const[sysMw,setSysMw]=useState(1),[sysMwh,setSysMwh]=useState(2);
   const t=isDark?dk:lt;
   const L=TXT[lang];LOC=lang==="en"?"en-GB":"sv-SE";
 
@@ -260,10 +275,12 @@ export default function Dashboard(){
   useEffect(()=>{
     fetch("/theoretical_max_all.json").then(r=>{if(!r.ok)throw new Error();return r.json();})
       .then(d=>setTmax(d.areas)).catch(()=>setTmax(null));
-    fetch("/actuals.json").then(r=>{if(!r.ok)throw new Error();return r.json();})
-      .then(d=>setActs(d)).catch(()=>setActs(null));
-    fetch("/benchmark.json").then(r=>{if(!r.ok)throw new Error();return r.json();})
-      .then(d=>setBench(d)).catch(()=>setBench(null));
+    fetch("/actuals.json").then(r=>{if(!r.ok)throw new Error("HTTP "+r.status);return r.json();})
+      .then(d=>setActs(d))
+      .catch(e=>{console.warn("actuals.json kunde inte läsas:",e.message);setActs(null);});
+    fetch("/benchmark.json").then(r=>{if(!r.ok)throw new Error("HTTP "+r.status);return r.json();})
+      .then(d=>setBench(d))
+      .catch(e=>{console.warn("benchmark.json kunde inte läsas:",e.message);setBench(null);});
   },[]);
 
   const toggle=useCallback(id=>{setSel(p=>{const n=new Set(p);n.has(id)?(n.size>1&&n.delete(id)):n.add(id);return n;});},[]);
@@ -334,6 +351,30 @@ export default function Dashboard(){
            adj:base.some(m=>m.actAvail<0.999)};
   },[monthsA,actShown]);
   const proxyMonths=useMemo(()=>monthsA.filter(m=>m.spreadSrc==="da_proxy"),[monthsA]);
+
+  // Systemkalkyl: interpolera mellan närmaste C-tal i rutnätet, skala med MW.
+  const CMAX=4.0, CVAL=2.5;
+  const sys=useMemo(()=>{
+    if(!aD||!aD.length)return null;
+    const keys=Object.keys(aD[0]).filter(k=>/^c[\d.]+$/.test(k))
+      .map(k=>({k,c:parseFloat(k.slice(1))})).sort((a,b)=>a.c-b.c);
+    if(!keys.length)return{noGrid:true};
+    const c=sysMwh/sysMw;
+    if(!(c>0))return null;
+    if(c>CMAX)return{tooBig:true,c};
+    const at=(row)=>{
+      let lo=keys[0],hi=keys[keys.length-1];
+      for(let i=0;i<keys.length-1;i++){if(c>=keys[i].c&&c<=keys[i+1].c){lo=keys[i];hi=keys[i+1];break;}}
+      if(c<=keys[0].c)return row[keys[0].k]||0;
+      if(c>=hi.c&&hi===keys[keys.length-1]&&c>keys[keys.length-1].c)return row[hi.k]||0;
+      const w=hi.c===lo.c?0:(c-lo.c)/(hi.c-lo.c);
+      return (row[lo.k]||0)*(1-w)+(row[hi.k]||0)*w;
+    };
+    const base=tr===0?aD:aD.slice(-tr);
+    const rows=base.map(r=>({ym:r.year_month,v:Math.round(at(r)*sysMw)}));
+    const tot=rows.reduce((a,r)=>a+r.v,0);
+    return{c,rows,tot,perMw:tot/sysMw,perMwh:tot/sysMwh,modelled:c>CVAL};
+  },[aD,sysMw,sysMwh,tr]);
   const manualMonths=useMemo(()=>monthsA.filter(m=>m.spreadSrc==="manual"),[monthsA]);
   const vers=useMemo(()=>{
     if(!acts||!acts.strategy_versions)return[];
@@ -391,7 +432,7 @@ export default function Dashboard(){
           <div style={{width:1,height:18,background:t.bd,margin:"0 8px"}}/>
           <span style={{fontSize:9,color:t.dm,textTransform:"uppercase",letterSpacing:"0.08em"}}>{L.period}</span>
           {TR.map(r=><Pill key={r.k} active={tr===r.k} onClick={()=>setTr(r.k)} small t={t}>{r.l[lang]}</Pill>)}
-          <div style={{flex:1}}/><span style={{fontSize:11,color:t.mu,fontFamily:"'JetBrains Mono'"}}>{mw} MW · {mw*dur} MWh · C/{dur}</span>
+          <div style={{flex:1}}/>{view!=="system"&&<span style={{fontSize:11,color:t.mu,fontFamily:"'JetBrains Mono'"}}>{mw} MW · {mw*dur} MWh · C/{dur}</span>}
         </div>
         {noMfrr&&(<div style={{marginBottom:16,padding:"12px 16px",background:amb+"12",border:`1px solid ${amb}30`,borderRadius:8,fontSize:11,color:amb}}>
           ⚠ <strong>{L.noData}</strong> {L.noDataRest}</div>)}
@@ -418,7 +459,7 @@ export default function Dashboard(){
 
         <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap"}}>
           {[{k:"comparison",l:L.tComparison},{k:"mfrr",l:L.tMfrr},
-            {k:"dayahead",l:L.tDa},{k:"tmax",l:L.ceiling},{k:"duration",l:"1h / 2h"},{k:"table",l:L.tTable}
+            {k:"dayahead",l:L.tDa},{k:"tmax",l:L.ceiling},{k:"duration",l:"1h / 2h"},{k:"system",l:L.tSystem},{k:"table",l:L.tTable}
           ].map(v=><Pill key={v.k} active={view===v.k} onClick={()=>setView(v.k)} t={t}>{v.l}</Pill>)}</div>
         {(view==="comparison"||view==="table")&&(<div style={{display:"flex",gap:5,marginBottom:14,flexWrap:"wrap",alignItems:"center"}}>
           <span style={{fontSize:9,color:t.dm,textTransform:"uppercase"}}>{L.show}</span>
@@ -561,6 +602,46 @@ export default function Dashboard(){
               <SB label={L.shareCeil} value={dTot?`${(gv/dTot*100).toFixed(0)}%`:"—"} color={sc("mfrr_opt")} t={t}/>
               <SB label={L.convShare} value={dTot?`${(cv/dTot*100).toFixed(0)}%`:"—"} color={sc("mfrr_conv")} t={t}/></div>
             <IB color={T_GREY} t={t}>{L.ceilExpl}</IB>
+          </Card>);})()}
+
+        {view==="system"&&(()=>{
+          const inp={background:t.cA,border:`1px solid ${t.bd}`,borderRadius:6,color:t.tx,
+            padding:"6px 10px",fontSize:15,width:90,fontFamily:"'JetBrains Mono'",textAlign:"right"};
+          const lbl={fontSize:10,color:t.mu,textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:4};
+          return(<Card title={L.sysTitle} sub={L.sysSub} t={t}>
+            <div style={{display:"flex",gap:20,alignItems:"flex-end",flexWrap:"wrap",marginBottom:16}}>
+              <div><div style={lbl}>{L.effect}</div>
+                <input type="number" min={0.1} max={500} step={0.1} value={sysMw}
+                  onChange={e=>setSysMw(Math.max(0.1,Number(e.target.value)||0.1))} style={inp}/>
+                <span style={{color:t.mu,fontSize:12,marginLeft:6}}>MW</span></div>
+              <div><div style={lbl}>{L.energy}</div>
+                <input type="number" min={0.1} max={2000} step={0.1} value={sysMwh}
+                  onChange={e=>setSysMwh(Math.max(0.1,Number(e.target.value)||0.1))} style={inp}/>
+                <span style={{color:t.mu,fontSize:12,marginLeft:6}}>MWh</span></div>
+              <div><div style={lbl}>{L.crate}</div>
+                <div style={{fontSize:20,fontWeight:700,fontFamily:"'JetBrains Mono'",
+                  color:sys&&sys.tooBig?red:(sys&&sys.modelled?amb:t.tx)}}>
+                  C/{(sysMwh/sysMw).toFixed(2)}</div></div>
+            </div>
+            {!sys?<div style={{fontSize:12,color:t.mu}}>{L.loading}</div>
+             :sys.noGrid?<div style={{fontSize:12,color:amb}}>⚠ {L.sysNoGrid}</div>
+             :sys.tooBig?<div style={{fontSize:12,color:red}}>⚠ {L.sysMax}</div>
+             :(<>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:14}}>
+                <SB label={`${L.sysTotal} ${N} ${L.mo}`} value={fmtE(sys.tot)} color={sc("mfrr_opt")} t={t}/>
+                <SB label={L.sysPerMw} value={fmtE(sys.perMw)} color={t.mu} t={t}/>
+                <SB label={L.sysPerMwh} value={fmtE(sys.perMwh)} color={t.mu} t={t}/>
+              </div>
+              <ResponsiveContainer width="100%" height={300}>
+                <ComposedChart data={sys.rows.map((r,i)=>({label:months[i]?months[i].label:r.ym,v:r.v}))}
+                  margin={{top:8,right:12,bottom:5,left:0}}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={t.cG}/><XAxis {...xP}/><YAxis {...yP}/>
+                  <Tooltip content={<TT theme={t}/>}/>
+                  <Bar dataKey="v" name={S.mfrr_opt.l[lang]} fill={sc("mfrr_opt")} opacity={0.75} radius={[2,2,0,0]}/>
+                </ComposedChart>
+              </ResponsiveContainer>
+              {sys.modelled&&<IB color={amb} t={t}>{L.sysModelled}</IB>}
+             </>)}
           </Card>);})()}
 
         {view==="table"&&(<Card title={`${L.tTable} — ${dur}h · ${mw} MW`} t={t}>

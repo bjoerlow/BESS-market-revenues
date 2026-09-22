@@ -1,8 +1,8 @@
 {
-  "_comment": "Clean Horizon Storage Index © Clean Horizon, levererat via Nord Pool. Underhålls för hand. Värdena visas oförändrade — ingen omräkning görs. Metodikskillnader mot vår modell listas i 'methodology'.",
+  "_comment": "Clean Horizon Storage Index \u00a9 Clean Horizon, levererat via Nord Pool. Underh\u00e5lls f\u00f6r hand. V\u00e4rdena visas of\u00f6r\u00e4ndrade \u2014 ingen omr\u00e4kning g\u00f6rs. Metodikskillnader mot v\u00e5r modell listas i 'methodology'.",
   "source": {
     "name": "Clean Horizon Storage Index",
-    "copyright": "© Clean Horizon",
+    "copyright": "\u00a9 Clean Horizon",
     "delivered_by": "Nord Pool",
     "url": "https://www.cleanhorizon.com/battery-index/",
     "label_sv": "Clean Horizon Index",
@@ -11,8 +11,8 @@
   "methodology": {
     "markets_sv": "Day-ahead, intradag, FCR-N, FCR-D upp/ned, FFR, aFRR (kapacitet + energi), mFRR (kapacitet + energi)",
     "markets_en": "Day-ahead, intraday, FCR-N, FCR-D up/down, FFR, aFRR (capacity + energy), mFRR (capacity + energy)",
-    "note_sv": "Indexet omfattar aFRR och FFR som GreenVoltis inte budar mot. Antaganden: 85% verkningsgrad (vår modell 90%), 1,5 cykler/dygn, 100% tillgänglighet, användbar energi = märkeffekt × uthållighet (vår modell 90%). Värdena visas oförändrade — jämförelsen är därför inte helt likvärdig.",
-    "note_en": "The index covers aFRR and FFR, which GreenVoltis does not bid into. Assumptions: 85% round-trip efficiency (our model 90%), 1.5 cycles/day, 100% availability, usable energy = rated power × duration (our model 90%). Values are shown unmodified, so the comparison is not fully like-for-like."
+    "note_sv": "Indexet omfattar aFRR och FFR som GreenVoltis inte budar mot. Antaganden: 85% verkningsgrad (v\u00e5r modell 90%), 1,5 cykler/dygn, 100% tillg\u00e4nglighet, anv\u00e4ndbar energi = m\u00e4rkeffekt \u00d7 uth\u00e5llighet (v\u00e5r modell 90%). V\u00e4rdena visas of\u00f6r\u00e4ndrade \u2014 j\u00e4mf\u00f6relsen \u00e4r d\u00e4rf\u00f6r inte helt likv\u00e4rdig.",
+    "note_en": "The index covers aFRR and FFR, which GreenVoltis does not bid into. Assumptions: 85% round-trip efficiency (our model 90%), 1.5 cycles/day, 100% availability, usable energy = rated power \u00d7 duration (our model 90%). Values are shown unmodified, so the comparison is not fully like-for-like."
   },
   "index": {
     "SE1": [
@@ -47,8 +47,8 @@
         "h4": 6205.45,
         "corrected": true,
         "flag": "corrected",
-        "note_sv": "Korrigerat: Clean Horizons annualiserade 170 kEUR/MW ÷ 12",
-        "note_en": "Corrected: Clean Horizon annualised 170 kEUR/MW ÷ 12"
+        "note_sv": "Korrigerat: Clean Horizons annualiserade 170 kEUR/MW \u00f7 12",
+        "note_en": "Corrected: Clean Horizon annualised 170 kEUR/MW \u00f7 12"
       },
       {
         "year_month": "2026-06",
@@ -61,6 +61,12 @@
         "h1": 9091.73,
         "h2": 13620.66,
         "h4": 14309.45
+      },
+      {
+        "year_month": "2026-08",
+        "h1": 11960.28,
+        "h2": 16196.34,
+        "h4": 18048.53
       }
     ],
     "SE2": [
@@ -95,8 +101,8 @@
         "h4": 6741.87,
         "corrected": true,
         "flag": "corrected",
-        "note_sv": "Korrigerat: Clean Horizons annualiserade 170 kEUR/MW ÷ 12",
-        "note_en": "Corrected: Clean Horizon annualised 170 kEUR/MW ÷ 12"
+        "note_sv": "Korrigerat: Clean Horizons annualiserade 170 kEUR/MW \u00f7 12",
+        "note_en": "Corrected: Clean Horizon annualised 170 kEUR/MW \u00f7 12"
       },
       {
         "year_month": "2026-06",
@@ -109,6 +115,12 @@
         "h1": 8284.16,
         "h2": 12384.74,
         "h4": 13099.81
+      },
+      {
+        "year_month": "2026-08",
+        "h1": 10512.8,
+        "h2": 13419.33,
+        "h4": 14889.08
       }
     ],
     "SE3": [
@@ -142,8 +154,8 @@
         "h2": 14167.0,
         "h4": 10829.36,
         "corrected": true,
-        "note_sv": "Korrigerat: Clean Horizons annualiserade 170 kEUR/MW ÷ 12",
-        "note_en": "Corrected: Clean Horizon annualised 170 kEUR/MW ÷ 12",
+        "note_sv": "Korrigerat: Clean Horizons annualiserade 170 kEUR/MW \u00f7 12",
+        "note_en": "Corrected: Clean Horizon annualised 170 kEUR/MW \u00f7 12",
         "flag": "corrected"
       },
       {
@@ -157,6 +169,12 @@
         "h1": 7458.2,
         "h2": 10707.85,
         "h4": 14304.64
+      },
+      {
+        "year_month": "2026-08",
+        "h1": 8720.29,
+        "h2": 11693.95,
+        "h4": 14457.0
       }
     ],
     "SE4": [
@@ -191,8 +209,8 @@
         "h4": 13369.3,
         "corrected": true,
         "flag": "corrected",
-        "note_sv": "Korrigerat: Clean Horizons annualiserade 170 kEUR/MW ÷ 12",
-        "note_en": "Corrected: Clean Horizon annualised 170 kEUR/MW ÷ 12"
+        "note_sv": "Korrigerat: Clean Horizons annualiserade 170 kEUR/MW \u00f7 12",
+        "note_en": "Corrected: Clean Horizon annualised 170 kEUR/MW \u00f7 12"
       },
       {
         "year_month": "2026-06",
@@ -205,6 +223,12 @@
         "h1": 12937.89,
         "h2": 20353.63,
         "h4": 25843.75
+      },
+      {
+        "year_month": "2026-08",
+        "h1": 11817.83,
+        "h2": 16607.19,
+        "h4": 20315.66
       }
     ]
   }

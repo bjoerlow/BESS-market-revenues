@@ -1,5 +1,5 @@
 {
-  "_comment": "Faktiskt utfall och strategiversioner. Underhalls for hand. total = verkligt utfall i EUR for hela anlaggningen, aldrig justerat. availability = andel av manaden anlaggningen var i drift (1.0 = hela). duration_h styr vid vilken uthallighet punkterna visas: 2.5 visas vid 2h.",
+  "_comment": "Faktiskt utfall och strategiversioner. Underhalls for hand. total = verkligt utfall i EUR for hela anlaggningen, aldrig justerat. availability = andel av manaden anlaggningen var i drift (1.0 = hela). duration_h styr vid vilken uthallighet punkterna visas: 2.5 visas vid 2h, 1.0 vid 1h.",
   "strategy_versions": [
     {
       "from": "2025-09",
@@ -62,6 +62,23 @@
         "availability": 1.0,
         "note": "",
         "components": {}
+      }
+    ],
+    "SE4": [
+      {
+        "year_month": "2026-09",
+        "site": "Kund",
+        "mw": 1.0,
+        "duration_h": 1.0,
+        "total": 21765,
+        "availability": 1.0,
+        "note": "Full drift 30 av 30 dygn",
+        "components": {
+          "cm": 18795,
+          "fcr": 182,
+          "eam": 9815,
+          "intraday": -7027
+        }
       }
     ]
   }

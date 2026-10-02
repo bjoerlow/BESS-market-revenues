@@ -210,6 +210,8 @@ function tx(raw,dur,mw,lang){
   r.fcrGainPct=raw[`fcr_gain_pct_${dur}h`]||0;
   r.fcrBasis=raw.fcr_basis||"";
   r.idExtra=Math.round((raw[`gv_id_extra_${dur}h`]||0)*mw);
+  r.fcrnPot=Math.round((raw[`fcrn_potential_${dur}h`]||0)*mw);
+  r.fcrnIn=raw.fcrn_in_model!==false;
   return r;
 }
 
@@ -542,20 +544,26 @@ export default function Dashboard(){
               {(()=>{
                 const fg=months.reduce((s,m)=>s+(m.fcrGain||0),0);
                 const base=sN-fg;
+                const fp=months.reduce((s,m)=>s+(m.fcrnPot||0),0);
+                const fin=months.length>0&&months[months.length-1].fcrnIn!==false;
                 const mdl=months.filter(m=>m.fcrBasis==="modellerad").length;
                 const top=[...months].filter(m=>(m.fcrGain||0)>0)
                   .sort((a,b)=>b.fcrGain-a.fcrGain).slice(0,3);
-                if(!fg)return null;
+                if(!fg&&!fp)return null;
                 return(<div style={{marginTop:10}}>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
-                    <SB label={lang==="en"?"Without FCR":"Utan FCR"} value={fmtE(base)} color={t.mu} t={t}/>
-                    <SB label={lang==="en"?"FCR contribution":"Varav FCR"} value={`+${fmtE(fg)}`} color={grn} t={t}/>
-                    <SB label={lang==="en"?"FCR share":"FCR-andel"}
-                        value={base>0?`+${(fg/base*100).toFixed(1)}%`:"—"} color={grn} t={t}/></div>
+                    <SB label={lang==="en"?"Without FCR-D":"Utan FCR-D"} value={fmtE(base)} color={t.mu} t={t}/>
+                    <SB label={lang==="en"?"FCR-D contribution":"Varav FCR-D"} value={`+${fmtE(fg)}`} color={grn} t={t}/>
+                    <SB label={fin?(lang==="en"?"of which FCR-N":"Varav FCR-N")
+                                   :(lang==="en"?"If FCR-N prequalified":"FCR-N om prekval.")}
+                        value={fp?`+${fmtE(fp)}`:"—"} color={fin?grn:amb} t={t}/></div>
                   <div style={{marginTop:8,fontSize:10.5,color:t.mu,lineHeight:1.6}}>
                     {lang==="en"
-                      ? "FCR-N and FCR-D are bid in the direction mFRR leaves free. The comparison is the same optimiser with FCR disabled, so the figure is what FCR adds over the mFRR and energy mix that would otherwise use the same headroom."
-                      : "FCR-N och FCR-D bjuds i den riktning mFRR lämnar fri. Jämförelsen är samma optimerare med FCR avstängt, så siffran är vad FCR tillför utöver den mFRR- och energimix som annars hade använt samma headroom."}
+                      ? "FCR-D is bid in the direction mFRR leaves free. The third figure is the value of FCR-N, computed as the same optimiser with and without it."
+                      : "FCR-D bjuds i den riktning mFRR lämnar fri. Tredje siffran är FCR-N:s värde, beräknad som samma optimerare med och utan FCR-N."}
+                    {fin&&<><br/><em style={{color:amb}}>{lang==="en"
+                      ? "FCR-N is included in the figures. Against seven site-months the model then runs +3.1% above actuals rather than −1.7%, because the sites have not prequalified FCR-N and bid ~0 MW of it in practice."
+                      : "FCR-N ingår i siffrorna. Mot sju anläggningsmånader hamnar modellen då +3,1% över utfallet i stället för −1,7%, eftersom anläggningarna inte prekvalificerat FCR-N och i praktiken budar ~0 MW."}</em></>}
                     {top.length>0&&<><br/>{lang==="en"?"Largest months: ":"Störst bidrag: "}
                       {top.map(m=>`${m.label} +${fmtE(m.fcrGain)} (${m.fcrGainPct.toFixed(0)}%)`).join(" · ")}</>}
                     {mdl>0&&<><br/><em style={{color:amb}}>{lang==="en"

@@ -205,6 +205,11 @@ function tx(raw,dur,mw,lang){
   r.mfrr_eam_up_price=raw.mfrr_eam_up_price||0;r.mfrr_eam_down_price=raw.mfrr_eam_down_price||0;
   r.intraday_spread=raw.intraday_spread||0;r.da_imbalance_pct=raw.da_imbalance_pct||0;
   r.spreadSrc=raw.spread_source||"unknown";
+  // FCR-bidraget i GV-strategin: samma optimerare utan FCR som jamforelse
+  r.fcrGain=Math.round((raw[`fcr_gain_${dur}h`]||0)*mw);
+  r.fcrGainPct=raw[`fcr_gain_pct_${dur}h`]||0;
+  r.fcrBasis=raw.fcr_basis||"";
+  r.idExtra=Math.round((raw[`gv_id_extra_${dur}h`]||0)*mw);
   return r;
 }
 
@@ -534,6 +539,39 @@ export default function Dashboard(){
                 <SB label={`${L.conv} ${N}${L.mo}`} value={fmtE(sC)} color={sc("mfrr_conv")} t={t}/>
                 <SB label={`${S.mfrr_opt.l[lang]} ${N}${L.mo}`} value={fmtE(sN)} color={sc("mfrr_opt")} t={t}/>
                 <SB label={L.diff} value={sC>0?`+${((sN-sC)/sC*100).toFixed(0)}%`:"—"} color={t.tx} t={t}/></div>
+              {(()=>{
+                const fg=months.reduce((s,m)=>s+(m.fcrGain||0),0);
+                const base=sN-fg;
+                const mdl=months.filter(m=>m.fcrBasis==="modellerad").length;
+                const top=[...months].filter(m=>(m.fcrGain||0)>0)
+                  .sort((a,b)=>b.fcrGain-a.fcrGain).slice(0,3);
+                if(!fg)return null;
+                return(<div style={{marginTop:10}}>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+                    <SB label={lang==="en"?"Without FCR":"Utan FCR"} value={fmtE(base)} color={t.mu} t={t}/>
+                    <SB label={lang==="en"?"FCR contribution":"Varav FCR"} value={`+${fmtE(fg)}`} color={grn} t={t}/>
+                    <SB label={lang==="en"?"FCR share":"FCR-andel"}
+                        value={base>0?`+${(fg/base*100).toFixed(1)}%`:"—"} color={grn} t={t}/></div>
+                  <div style={{marginTop:8,fontSize:10.5,color:t.mu,lineHeight:1.6}}>
+                    {lang==="en"
+                      ? "FCR-N and FCR-D are bid in the direction mFRR leaves free. The comparison is the same optimiser with FCR disabled, so the figure is what FCR adds over the mFRR and energy mix that would otherwise use the same headroom."
+                      : "FCR-N och FCR-D bjuds i den riktning mFRR lämnar fri. Jämförelsen är samma optimerare med FCR avstängt, så siffran är vad FCR tillför utöver den mFRR- och energimix som annars hade använt samma headroom."}
+                    {top.length>0&&<><br/>{lang==="en"?"Largest months: ":"Störst bidrag: "}
+                      {top.map(m=>`${m.label} +${fmtE(m.fcrGain)} (${m.fcrGainPct.toFixed(0)}%)`).join(" · ")}</>}
+                    {mdl>0&&<><br/><em style={{color:amb}}>{lang==="en"
+                      ? `${mdl} of ${months.length} months are modelled: prequalification for FCR and mFRR on the same site completed in July 2026, so earlier months show what FCR would have added, not what was realised.`
+                      : `${mdl} av ${months.length} månader är modellerade: prekvalificering för FCR och mFRR på samma anläggning blev klar i juli 2026, så tidigare månader visar vad FCR hade tillfört — inte realiserat utfall.`}</em></>}
+                  </div></div>);})()}
+              {(()=>{
+                const ie=months.reduce((s,m)=>s+(m.idExtra||0),0);
+                const n=months.filter(m=>(m.idExtra||0)>0).length;
+                if(!ie)return null;
+                return(<div style={{marginTop:8,fontSize:10.5,color:t.mu,lineHeight:1.6}}>
+                  <strong style={{color:grn}}>{lang==="en"?"Extra intraday arbitrage":"Extra intradagsarbitrage"}: +{fmtE(ie)}</strong>
+                  {" "}({n}{L.mo}). {lang==="en"
+                    ? "A battery already committed to mFRR round the clock can still arbitrage the quarters it is not activated in. Scales with measured intraday spread, so it is largest in SE4 and smallest in SE1."
+                    : "Ett batteri som redan ligger på mFRR dygnet runt kan ändå arbitrera de kvartar det inte aktiveras i. Skalar med uppmätt intradagsspread, så posten är störst i SE4 och minst i SE1."}
+                  </div>);})()}
               <IB color={grn} t={t}><strong style={{color:t.tx}}>{L.conv}:</strong> {CH[dur]}{L.convExpl1} {CB[dur]}{L.convExpl2}
                 <br/><br/><strong style={{color:t.tx}}>{S.mfrr_opt.l[lang]}:</strong> {OH[dur]}{L.gvExpl1} {OE[dur]} {L.gvExpl2} {CE[dur]}.{OB[dur]>0?` ${OB[dur]}${L.gvBf}`:""}
                 {dur===2&&<><br/><em style={{color:amb}}>{L.gvNote}</em></>}</IB></Card></div>);})()}

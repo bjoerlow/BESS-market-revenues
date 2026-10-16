@@ -50,7 +50,7 @@ const TXT={
   noData:"mFRR CM/EAM-data saknas",noDataRest:"— ladda ner CSV från mimer.svk.se → data/manual/",
   ceiling:"Marknadstak",foresight:"perfekt framförhållning",ofCeil:"av tak",reqBess:"2,5h BESS",
   inclImb:"inkl. obalans",
-  tComparison:"Strategijämförelse",tMfrr:"mFRR upp vs ned",tDa:"Day-ahead & obalans",tTable:"Månadstabell",
+  tComparison:"Intäkt & benchmark",tMfrr:"mFRR upp vs ned",tDa:"Day-ahead & obalans",tTable:"Månadstabell",
   mfrrUp:"mFRR upp",mfrrDown:"mFRR ned",dUpDown:"Δ (upp−ned)",perDir:"CM+EAM per riktning",
   best:"Bäst",up:"UPP",down:"NED",conv:"Konventionell",vsTitle:"Konventionell vs GreenVoltis strategi",
   sameDir:"Samma riktning, olika deltagande",dOptConv:"Δ opt−konv.",diff:"Skillnad",
@@ -92,7 +92,7 @@ const TXT={
   noData:"mFRR CM/EAM data missing",noDataRest:"— download CSV from mimer.svk.se → data/manual/",
   ceiling:"Market ceiling",foresight:"perfect foresight",ofCeil:"of ceiling",reqBess:"2.5h BESS",
   inclImb:"incl. imbalance",
-  tComparison:"Strategy comparison",tMfrr:"mFRR up vs down",tDa:"Day-ahead & imbalance",tTable:"Monthly table",
+  tComparison:"Revenue & benchmark",tMfrr:"mFRR up vs down",tDa:"Day-ahead & imbalance",tTable:"Monthly table",
   mfrrUp:"mFRR up",mfrrDown:"mFRR down",dUpDown:"Δ (up−down)",perDir:"CM+EAM per direction",
   best:"Best",up:"UP",down:"DOWN",conv:"Conventional",vsTitle:"Conventional vs GreenVoltis strategy",
   sameDir:"Same direction, different participation",dOptConv:"Δ opt−conv.",diff:"Difference",
@@ -257,7 +257,11 @@ function IB({color,children,t}){
 
 export default function Dashboard(){
   const[area,setArea]=useState("SE3"),[dur,setDur]=useState(2),[mw,setMw]=useState(1);
-  const[view,setView]=useState("comparison"),[sel,setSel]=useState(new Set(SIDS));
+  // Lasarvyn visar EN strategi: var egen. Benchmark ar Clean Horizons index och
+  // det teoretiska maxtaket. De ovriga strategierna finns kvar i berakningen och
+  // i konkurrentfliken, men listas inte sida vid sida langre - fardre siffror,
+  // tydligare budskap.
+  const[view,setView]=useState("comparison"),[sel,setSel]=useState(new Set(["mfrr_opt"]));
   const[rawData,setRawData]=useState(null),[ds,setDs]=useState("syntetisk");
   const[tmax,setTmax]=useState(null);
   const[acts,setActs]=useState(null);
@@ -448,9 +452,9 @@ export default function Dashboard(){
           <KPI label={S.mfrr_opt.l[lang]} value={fmtE(ann.mfrr_opt)} sub={[hasT?`${(ann.mfrr_opt/ann.tmax*100).toFixed(0)}% ${L.ofCeil}`:null,
                  benchSum?`${(benchSum.gv/benchSum.idx*100).toFixed(0)}% ${L.vsIndex}`:null,
                  dur===2?L.reqBess:null].filter(Boolean).join(" · ")} color={sc("mfrr_opt")} t={t}/>
-          <KPI label={S.mfrr_conv.l[lang]} value={fmtE(ann.mfrr_conv)} sub={hasT?`${(ann.mfrr_conv/ann.tmax*100).toFixed(0)}% ${L.ofCeil}`:""} color={sc("mfrr_conv")} t={t}/>
-          <KPI label="FCR-N + FCR-D" value={fmtE(ann.fcrn_fcrd)} sub={hasT?`${(ann.fcrn_fcrd/ann.tmax*100).toFixed(0)}% ${L.ofCeil}`:""} color={sc("fcrn_fcrd")} t={t}/>
-          <KPI label="Day-ahead" value={fmtE(ann.dayahead)} sub={L.inclImb} color={sc("dayahead")} warn t={t}/>
+          {benchSum&&<KPI label={bench?.source?.[lang==="en"?"label_en":"label_sv"]||"Clean Horizon Index"}
+            value={fmtE(benchSum.idx)} sub={`${benchSum.n} ${L.monthsShort}`}
+            color={isDark?"#94a3b8":"#64748b"} t={t}/>}
         </div>
 
         {valid&&(<div style={{marginBottom:16,padding:"10px 14px",background:t.cA,
@@ -466,11 +470,8 @@ export default function Dashboard(){
 
         <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap"}}>
           {[{k:"comparison",l:L.tComparison},{k:"mfrr",l:L.tMfrr},
-            {k:"dayahead",l:L.tDa},{k:"tmax",l:L.ceiling},{k:"duration",l:"1h / 2h"},{k:"system",l:L.tSystem},{k:"table",l:L.tTable}
+            {k:"tmax",l:L.ceiling},{k:"system",l:L.tSystem},{k:"table",l:L.tTable}
           ].map(v=><Pill key={v.k} active={view===v.k} onClick={()=>setView(v.k)} t={t}>{v.l}</Pill>)}</div>
-        {(view==="comparison"||view==="table")&&(<div style={{display:"flex",gap:5,marginBottom:14,flexWrap:"wrap",alignItems:"center"}}>
-          <span style={{fontSize:9,color:t.dm,textTransform:"uppercase"}}>{L.show}</span>
-          {SIDS.map(sid=><Pill key={sid} active={sel.has(sid)} color={sc(sid)} onClick={()=>toggle(sid)} t={t}>{S[sid].l[lang]}</Pill>)}</div>)}
 
         {view==="comparison"&&(<Card title={`${L.tComparison} — ${dur}h (${mw*dur} MWh)`} sub={`${L.eurMo} · ${tr?`${L.last} ${tr}`:L.allMonths.split(" ")[0]} ${L.months}`} t={t}>
           <ResponsiveContainer width="100%" height={400}><ComposedChart data={monthsB} margin={{top:18,right:12,bottom:5,left:0}}>
@@ -584,6 +585,9 @@ export default function Dashboard(){
                 <br/><br/><strong style={{color:t.tx}}>{S.mfrr_opt.l[lang]}:</strong> {OH[dur]}{L.gvExpl1} {OE[dur]} {L.gvExpl2} {CE[dur]}.{OB[dur]>0?` ${OB[dur]}${L.gvBf}`:""}
                 {dur===2&&<><br/><em style={{color:amb}}>{L.gvNote}</em></>}</IB></Card></div>);})()}
 
+        {/* Day-ahead och 1h/2h-vyerna har ingen flik langre - de listade andra
+            strategier sida vid sida. Koden star kvar for internt bruk; lagg
+            tillbaka {k:"dayahead"} respektive {k:"duration"} i flikraden ovan. */}
         {view==="dayahead"&&(()=>{
           const kGr=L.grossArb,kIm=L.imbCost,kNe=L.netRev,kRf=L.id2ref;
           const dD=months.map(m=>({label:m.label,[kGr]:Math.round(m.dayahead/0.92),[kIm]:-Math.round(m.dayahead/0.92*0.08),[kNe]:m.dayahead,[kRf]:m.intraday2}));
@@ -694,18 +698,20 @@ export default function Dashboard(){
           <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:11,fontFamily:"'JetBrains Mono'"}}>
             <thead><tr style={{borderBottom:`2px solid ${t.bd}`}}>
               <th style={{...thS,textAlign:"left"}}>{L.monthCol}</th>
-              {hasBench&&<th style={{...thS,color:t.dm}}>Index</th>}
               {SIDS.filter(s=>sel.has(s)).map(sid=>(<th key={sid} style={{...thS,color:sc(sid)}}>{S[sid].s[lang]}</th>))}
+              {hasBench&&<th style={{...thS,color:t.dm}}>Index</th>}
+              {hasT&&<th style={{...thS,color:T_GREY}}>{L.ceiling}</th>}
             </tr></thead>
             <tbody>{monthsB.map((m,i)=>(<tr key={i} style={{borderBottom:`1px solid ${t.bd}`,background:i%2?t.bg+"66":"transparent"}}>
               <td style={{padding:"5px 6px",fontWeight:500,fontSize:10,fontFamily:"'Plus Jakarta Sans'"}}>{m.label}</td>
+              {SIDS.filter(s=>sel.has(s)).map(sid=>(<td key={sid} style={{padding:"5px 6px",textAlign:"right",color:sc(sid),fontWeight:500}}>{fmt(m[sid])}</td>))}
               {hasBench&&<td style={{padding:"5px 6px",textAlign:"right",color:t.dm}}>{m.bench?fmt(m.bench):"—"}</td>}
-              {(()=>{const vis=SIDS.filter(s=>sel.has(s));const bs=vis.reduce((a,s)=>(m[s]||0)>(m[a]||0)?s:a,vis[0]);
-                return vis.map(sid=>(<td key={sid} style={{padding:"5px 6px",textAlign:"right",color:sid===bs?sc(sid):t.dm,fontWeight:sid===bs?500:400}}>{fmt(m[sid])}</td>));})()}</tr>))}</tbody>
+              {hasT&&<td style={{padding:"5px 6px",textAlign:"right",color:t.dm}}>{m.tmax?fmt(m.tmax):"—"}</td>}</tr>))}</tbody>
             <tfoot><tr style={{borderTop:`2px solid ${t.bL}`}}>
               <td style={{padding:"6px",fontWeight:500,fontFamily:"'Plus Jakarta Sans'"}}>{L.sum}</td>
-              {hasBench&&<td style={{padding:"6px",textAlign:"right",color:t.dm}}>{fmt(monthsB.reduce((a,m)=>a+(m.bench||0),0))}</td>}
               {SIDS.filter(s=>sel.has(s)).map(sid=>(<td key={sid} style={{padding:"6px",textAlign:"right",fontWeight:500}}>{fmt(monthsB.reduce((a,m)=>a+(m[sid]||0),0))}</td>))}
+              {hasBench&&<td style={{padding:"6px",textAlign:"right",color:t.dm}}>{fmt(monthsB.reduce((a,m)=>a+(m.bench||0),0))}</td>}
+              {hasT&&<td style={{padding:"6px",textAlign:"right",color:t.dm}}>{fmt(monthsB.reduce((a,m)=>a+(m.tmax||0),0))}</td>}
             </tr></tfoot></table></div></Card>)}
 
         <div style={{marginTop:20,padding:16,background:t.card,border:`1px solid ${t.bd}`,borderRadius:12,display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:16,fontSize:10,color:t.mu,lineHeight:1.7}}>

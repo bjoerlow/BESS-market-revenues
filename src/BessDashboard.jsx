@@ -292,7 +292,8 @@ export default function Dashboard(){
   const[tmax,setTmax]=useState(null);
   const[acts,setActs]=useState(null);
   const[bench,setBench]=useState(null);
-  const[tr,setTr]=useState(12),[isDark,setIsDark]=useState(true);
+  // Ljust lage ar standard - det ar lasarens vy och den bar tryckas och delas.
+  const[tr,setTr]=useState(12),[isDark,setIsDark]=useState(false);
   const[lang,setLang]=useState("sv");
   const[sysMw,setSysMw]=useState(1),[sysMwh,setSysMwh]=useState(2);
   const t=isDark?dk:lt;
@@ -498,11 +499,10 @@ export default function Dashboard(){
           background:t.bg==="#0a0f1a"?"#0f1626":t.cA,padding:6,borderRadius:10,
           border:`1px solid ${t.bd}`}}>
           {[{k:"comparison",l:L.tComparison,h:L.hComparison},{k:"mfrr",l:L.tMfrr,h:L.hMfrr},
-            {k:"tmax",l:L.ceiling,h:L.hCeil},{k:"system",l:L.tSystem,h:L.hSystem},
-            {k:"table",l:L.tTable,h:L.hTable}
+            {k:"system",l:L.tSystem,h:L.hSystem},{k:"table",l:L.tTable,h:L.hTable}
           ].map(v=><Tab key={v.k} active={view===v.k} onClick={()=>setView(v.k)} label={v.l} hint={v.h} t={t}/>)}</div>
         <div style={{marginTop:-6,marginBottom:16,fontSize:11,color:t.mu,lineHeight:1.6}}>
-          {{comparison:L.hComparison,mfrr:L.hMfrr,tmax:L.hCeil,system:L.hSystem,table:L.hTable}[view]}</div>
+          {{comparison:L.hComparison,mfrr:L.hMfrr,system:L.hSystem,table:L.hTable}[view]}</div>
 
         {view==="comparison"&&(<Card title={`${L.tComparison} — ${dur}h (${mw*dur} MWh)`} sub={`${L.eurMo} · ${tr?`${L.last} ${tr}`:L.allMonths.split(" ")[0]} ${L.months}`} t={t}>
           <ResponsiveContainer width="100%" height={400}><ComposedChart data={monthsB} margin={{top:18,right:12,bottom:5,left:0}}>
@@ -654,6 +654,10 @@ export default function Dashboard(){
                 <div style={{fontSize:18,fontWeight:500,fontFamily:"'JetBrains Mono'",color:grn,marginTop:8}}>{fmtE(a)}</div>
                 <div style={{fontSize:10,color:t.mu}}>{L.optimal} {N} {L.mo}</div></div>);})}</div></Card>)}
 
+        {/* Marknadstaksfliken ar borttagen: den krävde en paragraf for att
+            forklaras och sa for lite. Taket finns kvar som referenslinje i
+            huvudvyn och som nyckeltal, och theoretical_max.py kors vidare for
+            intern analys. Lagg tillbaka {k:"tmax"} i flikraden for att ateroppna. */}
         {view==="tmax"&&(()=>{
           const dTot=months.reduce((a,m)=>a+(m.tmax||0),0);
           const gv=months.reduce((a,m)=>a+(m.mfrr_opt||0),0);

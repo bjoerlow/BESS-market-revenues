@@ -64,6 +64,12 @@ const TXT={
   cmUp:"mFRR CM upp",cmDown:"mFRR CM ned",energy:"Energi (spot/EAM)",
   ceilSub:"Perfekt framförhållning per kvart · SoC, uthållighet och cykelbudget respekterade · referensvärde, ej uppnåeligt",
   shareCeil:"Andel av tak",convShare:"Konventionell andel",
+  hComparison:"Vår intäkt månad för månad, med Clean Horizons index och marknadens tak som referens. Punkterna är faktiskt utfall från anläggning i drift.",
+  hMfrr:"Hur intäkten fördelas mellan mFRR upp och ned, och vad en konventionell aggregator hade fått med samma priser.",
+  hCeil:"Vad en perfekt optimerare hade tjänat med facit i hand. Visar hur stor del av marknadens värde vi faktiskt fångar.",
+  hSystem:"Räkna på valfri effekt och energi — ange MW och MWh så beräknas intäkten för det systemet.",
+  hTable:"Samma siffror som diagrammet, månad för månad i tabellform.",
+  ceilGap:"Outnyttjat",ceilTake:"Fångat av taket",ceilWhat:"Takets sammansättning",
   ceilMissing:"theoretical_max_all.json saknas i public/",ceilRun:"Kör",ceilPut:"och lägg filen i dashboardens public-mapp.",
   ceilExpl:"Taket väljer fritt bästa marknad i varje kvart med facit i hand och begränsas av batteriets SoC, uthållighetskrav per tjänst (mFRR 1 h, FCR 20 min), verkningsgrad och cykelbudget. Det är alltså inte ett realistiskt mål utan ett mått på hur stor del av marknadens värde en strategi fångar. Kapacitetsintäkt kräver ingen framförhållning — därför ligger andelen högt när mFRR CM dominerar månaden.",
   monthCol:"Mån",sum:"SUMMA",actual:"Faktiskt utfall",modelDev:"Modellen ligger inom",avail:"tillgänglighet",
@@ -106,6 +112,12 @@ const TXT={
   cmUp:"mFRR CM up",cmDown:"mFRR CM down",energy:"Energy (spot/EAM)",
   ceilSub:"Perfect foresight per quarter-hour · SoC, endurance and cycle budget respected · reference value, not attainable",
   shareCeil:"Share of ceiling",convShare:"Conventional share",
+  hComparison:"Our revenue month by month, with the Clean Horizon index and the market ceiling as references. Dots are realised outcomes from an operating site.",
+  hMfrr:"How revenue splits between mFRR up and down, and what a conventional aggregator would have earned on the same prices.",
+  hCeil:"What a perfect optimiser would have earned with hindsight. Shows how much of the market value we actually capture.",
+  hSystem:"Model any power and energy rating — enter MW and MWh to get the revenue for that system.",
+  hTable:"The same figures as the chart, month by month.",
+  ceilGap:"Unused",ceilTake:"Captured",ceilWhat:"What the ceiling is made of",
   ceilMissing:"theoretical_max_all.json missing in public/",ceilRun:"Run",ceilPut:"and place the file in the dashboard public folder.",
   ceilExpl:"The ceiling picks the best market in every quarter-hour with hindsight, constrained by state of charge, endurance requirements per service (mFRR 1 h, FCR 20 min), round-trip efficiency and cycle budget. It is not a realistic target but a measure of how much of the market value a strategy captures. Capacity revenue requires no foresight — which is why the share runs high in months dominated by mFRR CM.",
   monthCol:"Month",sum:"TOTAL",actual:"Actual outcome",modelDev:"Model within",avail:"availability",
@@ -232,6 +244,20 @@ function Pill({active,onClick,children,color,small,t}){
   return(<button onClick={onClick} style={{background:active?c+"18":"transparent",color:active?c:t.mu,
     border:`1px solid ${active?c+"40":t.bd}`,borderRadius:6,padding:small?"3px 8px":"5px 12px",
     fontSize:small?10:11.5,cursor:"pointer",fontWeight:active?500:400,fontFamily:"'Plus Jakarta Sans'",whiteSpace:"nowrap"}}>{children}</button>);
+}
+
+// Vyvaljaren sag inte klickbar ut - den liknade etiketter. Tabben far nu
+// bakgrundsplatta, tydlig aktiv flik med understreck, och en ledtext som
+// sager vad varje vy innehaller.
+function Tab({active,onClick,label,hint,t}){
+  const c=active?(t===dk?"#34d399":"#059669"):t.mu;
+  return(<button onClick={onClick} title={hint} style={{
+    background:active?t.card:"transparent",color:c,
+    border:`1px solid ${active?(t===dk?"#34d399":"#059669")+"55":"transparent"}`,
+    borderRadius:8,padding:"8px 14px",fontSize:12,cursor:"pointer",
+    fontWeight:active?600:500,fontFamily:"'Plus Jakarta Sans'",whiteSpace:"nowrap",
+    boxShadow:active?"0 1px 3px rgba(0,0,0,0.25)":"none",transition:"all .12s"}}>
+    {label}</button>);
 }
 function KPI({label,value,sub,color,warn,t}){
   return(<div style={{background:t.card,border:`1px solid ${t.bd}`,borderRadius:10,padding:"14px 16px",flex:1,minWidth:140,position:"relative"}}>
@@ -468,10 +494,15 @@ export default function Dashboard(){
               {" · "}{L.proxyDev}: ±{valid.proxyMax.toFixed(1)}% ({valid.proxyN} {L.monthsShort})</span>)}</span>
         </div>)}
 
-        <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap"}}>
-          {[{k:"comparison",l:L.tComparison},{k:"mfrr",l:L.tMfrr},
-            {k:"tmax",l:L.ceiling},{k:"system",l:L.tSystem},{k:"table",l:L.tTable}
-          ].map(v=><Pill key={v.k} active={view===v.k} onClick={()=>setView(v.k)} t={t}>{v.l}</Pill>)}</div>
+        <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap",
+          background:t.bg==="#0a0f1a"?"#0f1626":t.cA,padding:6,borderRadius:10,
+          border:`1px solid ${t.bd}`}}>
+          {[{k:"comparison",l:L.tComparison,h:L.hComparison},{k:"mfrr",l:L.tMfrr,h:L.hMfrr},
+            {k:"tmax",l:L.ceiling,h:L.hCeil},{k:"system",l:L.tSystem,h:L.hSystem},
+            {k:"table",l:L.tTable,h:L.hTable}
+          ].map(v=><Tab key={v.k} active={view===v.k} onClick={()=>setView(v.k)} label={v.l} hint={v.h} t={t}/>)}</div>
+        <div style={{marginTop:-6,marginBottom:16,fontSize:11,color:t.mu,lineHeight:1.6}}>
+          {{comparison:L.hComparison,mfrr:L.hMfrr,tmax:L.hCeil,system:L.hSystem,table:L.hTable}[view]}</div>
 
         {view==="comparison"&&(<Card title={`${L.tComparison} — ${dur}h (${mw*dur} MWh)`} sub={`${L.eurMo} · ${tr?`${L.last} ${tr}`:L.allMonths.split(" ")[0]} ${L.months}`} t={t}>
           <ResponsiveContainer width="100%" height={400}><ComposedChart data={monthsB} margin={{top:18,right:12,bottom:5,left:0}}>
@@ -630,9 +661,18 @@ export default function Dashboard(){
           const comp=[["tmax_fcrn","FCR-N",sc("fcrn")],["tmax_fcrd","FCR-D",sc("fcrd")],
                       ["tmax_cm_up",L.cmUp,sc("mfrr_opt")],["tmax_cm_down",L.cmDown,amb],
                       ["tmax_energy",L.energy,sc("intraday2")]];
-          const kGv=S.mfrr_opt.l[lang],kCv=L.conv;
-          const data=months.map(m=>{const o={label:m.label,[kGv]:m.mfrr_opt,[kCv]:m.mfrr_conv};
-            comp.forEach(([k,l])=>{o[l]=m[k]||0;});return o;});
+          const kGv=S.mfrr_opt.l[lang],kGap=L.ceilGap;
+          // Staplade delkomponenter var obegripliga: lasaren sag fem lager
+          // utan att forsta att det var TAKETS sammansattning, inte var egen.
+          // Nu tva tydliga lager - vad vi tog och vad som lamnades kvar -
+          // sa stapelns hojd ar taket och den grona delen ar var andel.
+          const data=months.map(m=>({label:m.label,
+            [kGv]:m.mfrr_opt||0,
+            [kGap]:Math.max(0,(m.tmax||0)-(m.mfrr_opt||0)),
+            andel:(m.tmax>0?(m.mfrr_opt/m.tmax*100):null)}));
+          const compTot=comp.map(([k,l,c])=>[l,c,months.reduce((a,m)=>a+(m[k]||0),0)])
+                            .filter(x=>x[2]>0).sort((a,b)=>b[2]-a[2]);
+          const compSum=compTot.reduce((a,x)=>a+x[2],0);
           if(!hasT)return(<Card title={L.ceiling} t={t}>
             <div style={{fontSize:11,color:t.mu,lineHeight:1.8}}>
               <strong style={{color:amb}}>{L.ceilMissing}</strong><br/><br/>
@@ -640,17 +680,29 @@ export default function Dashboard(){
               {L.ceilPut}</div></Card>);
           return(<Card title={`${L.ceiling} — ${dur}h (${mw*dur} MWh)`} sub={L.ceilSub} t={t}>
             <ResponsiveContainer width="100%" height={380}><ComposedChart data={data} margin={{top:8,right:12,bottom:5,left:0}}>
-              <CartesianGrid strokeDasharray="3 3" stroke={t.cG}/><XAxis {...xP}/><YAxis {...yP}/>
+              <CartesianGrid strokeDasharray="3 3" stroke={t.cG}/><XAxis {...xP}/>
+              <YAxis {...yP}/><YAxis yAxisId="r" orientation="right" domain={[0,100]}
+                tick={{fontSize:9,fill:t.dm}} axisLine={false} tickLine={false} unit="%"/>
               <Tooltip content={<TT theme={t}/>}/><Legend wrapperStyle={{fontSize:10}}/>
-              {comp.map(([k,l,c],i)=>(<Bar key={l} dataKey={l} stackId="tk" fill={c} opacity={0.55} radius={i===comp.length-1?[2,2,0,0]:[0,0,0,0]}/>))}
-              <Line dataKey={kGv} stroke={sc("mfrr_opt")} strokeWidth={2.5} dot={{r:3,fill:sc("mfrr_opt")}}/>
-              <Line dataKey={kCv} stroke={sc("mfrr_conv")} strokeWidth={2} strokeDasharray="4 2" dot={false}/>
+              <Bar dataKey={kGv} stackId="tk" fill={sc("mfrr_opt")} opacity={0.85} radius={[0,0,0,0]}/>
+              <Bar dataKey={kGap} stackId="tk" fill={T_GREY} opacity={0.18} radius={[2,2,0,0]}/>
+              <Line yAxisId="r" dataKey="andel" name={L.shareCeil} stroke={t.tx} strokeWidth={1.5}
+                strokeDasharray="3 3" dot={{r:2.5,fill:t.tx}} unit="%"/>
             </ComposedChart></ResponsiveContainer>
             <div style={{marginTop:12,display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
               <SB label={`${L.ceiling} ${N} ${L.mo}`} value={fmtE(dTot)} color={T_GREY} t={t}/>
               <SB label="GreenVoltis" value={fmtE(gv)} color={sc("mfrr_opt")} t={t}/>
               <SB label={L.shareCeil} value={dTot?`${(gv/dTot*100).toFixed(0)}%`:"—"} color={sc("mfrr_opt")} t={t}/>
-              <SB label={L.convShare} value={dTot?`${(cv/dTot*100).toFixed(0)}%`:"—"} color={sc("mfrr_conv")} t={t}/></div>
+              <SB label={L.ceilGap} value={fmtE(Math.max(0,dTot-gv))} color={T_GREY} t={t}/></div>
+            {compTot.length>0&&(<div style={{marginTop:12,paddingTop:10,borderTop:`1px solid ${t.bd}`}}>
+              <div style={{fontSize:10,color:t.dm,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:7}}>
+                {L.ceilWhat}</div>
+              <div style={{display:"flex",height:9,borderRadius:5,overflow:"hidden",marginBottom:7}}>
+                {compTot.map(([l,c,v])=>(<div key={l} style={{width:`${v/compSum*100}%`,background:c,opacity:0.75}}/>))}</div>
+              <div style={{display:"flex",gap:14,flexWrap:"wrap",fontSize:10.5,color:t.mu}}>
+                {compTot.map(([l,c,v])=>(<span key={l} style={{display:"flex",alignItems:"center",gap:5}}>
+                  <span style={{width:8,height:8,borderRadius:2,background:c,opacity:0.75}}/>
+                  {l} {(v/compSum*100).toFixed(0)}%</span>))}</div></div>)}
             <IB color={T_GREY} t={t}>{L.ceilExpl}</IB>
           </Card>);})()}
 

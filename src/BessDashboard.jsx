@@ -84,6 +84,10 @@ const TXT={
   sysNoGrid:"Kör om pipelinen för att få C-talsrutnätet i monthly_revenue_all.json.",
   benchNote:"Indexet omfattar aFRR och FFR som inte ingår i strategierna, och bygger på 85% verkningsgrad och full användbar energi. Värdena visas oförändrade.",
   vsIndex:"mot index",benchPartial:"korrigerat värde ur CH:s annualiserade tal",
+  altTitle:"Vad alternativen hade gett",
+  altSub:"Samma priser, samma batteri, andra strategival · hela perioden",
+  altNote:"Staplarna visar vad varje enskild strategi hade gett över perioden. GreenVoltis-strategin kombinerar mFRR-kapacitet dygnet runt med FCR-D i den riktning mFRR lämnar fri och energihandel på återstående band — den är därför inte summan av de andra utan ett annat sätt att använda samma batteri.",
+  altShow:"Visa i diagrammet",
   proxyNote:"härledd intradagsspread (day-ahead × 1,2) — osäker när marknaderna frikopplas",
   manualNote:"manuellt satt intradagsspread — ingår ej i valideringen",
   ofActual:"av faktiskt utfall",monthsShort:"mån",validatedIn:"validerat mot",
@@ -132,6 +136,10 @@ const TXT={
   sysNoGrid:"Re-run the pipeline to get the C-rate grid into monthly_revenue_all.json.",
   benchNote:"The index covers aFRR and FFR, which the strategies do not, and assumes 85% round-trip efficiency and full usable energy. Values are shown unmodified.",
   vsIndex:"vs index",benchPartial:"value corrected from CH annualised figure",
+  altTitle:"What the alternatives would have given",
+  altSub:"Same prices, same battery, different strategy · whole period",
+  altNote:"The bars show what each single strategy would have earned over the period. The GreenVoltis strategy combines round-the-clock mFRR capacity with FCR-D in the direction mFRR leaves free and energy trading on the remaining band — it is therefore not the sum of the others but a different way of using the same battery.",
+  altShow:"Show in chart",
   proxyNote:"derived intraday spread (day-ahead × 1.2) — unreliable when the markets decouple",
   manualNote:"manually set intraday spread — excluded from validation",
   ofActual:"of actual outcome",monthsShort:"mo",validatedIn:"validated against",
@@ -531,8 +539,11 @@ export default function Dashboard(){
             {benchSum&&<> · {L.vsIndex}: {fmtE(benchSum.gv)} / {fmtE(benchSum.idx)}
               {" = "}<strong style={{color:t.mu}}>{(benchSum.gv/benchSum.idx*100).toFixed(0)}%</strong></>}
             <br/>{bench.methodology?.[lang==="en"?"note_en":"note_sv"]||L.benchNote}
-            {benchSum?.corr?.map(m=>(<span key={m.ym}><br/>✎ {m.label} — {m.benchNote||L.benchPartial}</span>))}
           </div>)}
+          {benchSum?.corr?.map(m=>(
+            <div key={m.ym} style={{marginTop:8,padding:"9px 12px",background:amb+"12",
+              border:`1px solid ${amb}33`,borderRadius:8,fontSize:10.5,color:t.mu,lineHeight:1.65}}>
+              <strong style={{color:amb}}>✎ {m.label}</strong> — {m.benchNote||L.benchPartial}</div>))}
           {proxyMonths.length>0&&(<div style={{marginTop:6,fontSize:10.5,color:t.mu}}>
             ⚠ {proxyMonths.map(m=>m.label).join(", ")} — {L.proxyNote}</div>)}
           {manualMonths.length>0&&(<div style={{marginTop:4,fontSize:10,color:amb}}>
@@ -540,6 +551,37 @@ export default function Dashboard(){
           {monthsA.filter(m=>m.actAvail!=null&&m.actAvail<0.999).map(m=>(
             <div key={m.ym} style={{marginTop:6,fontSize:10.5,color:t.mu}}>
               ○ {m.label} · {L.avail} {(m.actAvail*100).toFixed(0)}% · {m.actNote} · {L.adjNote}: {fmtE(m.actualNorm)}</div>))}
+          {(()=>{
+            // Alternativen som KONTEXT, inte som konkurrenter: en kompakt
+            // liggande ranking for hela perioden i stallet for atta staplar
+            // per manad. Lasaren far veta vad som fanns att valja pa utan att
+            // behova lasa 72 tal.
+            const tot=SIDS.map(sid=>[sid,months.reduce((a,m)=>a+(m[sid]||0),0)])
+                          .filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]);
+            if(tot.length<2)return null;
+            const top=tot[0][1];
+            return(<div style={{marginTop:16,paddingTop:14,borderTop:`1px solid ${t.bd}`}}>
+              <div style={{display:"flex",alignItems:"baseline",gap:10,marginBottom:3}}>
+                <span style={{fontSize:11.5,color:t.tx,fontWeight:600}}>{L.altTitle}</span>
+                <span style={{fontSize:10,color:t.dm}}>{L.altSub}</span></div>
+              <div style={{marginTop:9,display:"flex",flexDirection:"column",gap:5}}>
+                {tot.map(([sid,v])=>{
+                  const me=sid==="mfrr_opt";
+                  return(<div key={sid} style={{display:"flex",alignItems:"center",gap:9}}>
+                    <span style={{width:132,flexShrink:0,fontSize:10.5,textAlign:"right",
+                      color:me?t.tx:t.mu,fontWeight:me?600:400}}>{S[sid].l[lang]}</span>
+                    <div style={{flex:1,height:me?15:11,background:t.cA,borderRadius:3,overflow:"hidden"}}>
+                      <div style={{width:`${v/top*100}%`,height:"100%",background:sc(sid),
+                        opacity:me?0.95:0.42,borderRadius:3}}/></div>
+                    <span style={{width:74,flexShrink:0,fontSize:10.5,textAlign:"right",
+                      fontFamily:"'JetBrains Mono'",color:me?t.tx:t.mu,
+                      fontWeight:me?600:400}}>{fmtE(v)}</span>
+                    <span style={{width:40,flexShrink:0,fontSize:10,textAlign:"right",color:t.dm}}>
+                      {me?"":`${(v/tot.find(x=>x[0]==="mfrr_opt")[1]*100).toFixed(0)}%`}</span>
+                  </div>);})}
+              </div>
+              <div style={{marginTop:10,fontSize:10.5,color:t.mu,lineHeight:1.65}}>{L.altNote}</div>
+            </div>);})()}
           </Card>)}
 
         {view==="mfrr"&&(()=>{

@@ -12,7 +12,9 @@
     "markets_sv": "Day-ahead, intradag, FCR-N, FCR-D upp/ned, FFR, aFRR (kapacitet + energi), mFRR (kapacitet + energi)",
     "markets_en": "Day-ahead, intraday, FCR-N, FCR-D up/down, FFR, aFRR (capacity + energy), mFRR (capacity + energy)",
     "note_sv": "Indexet omfattar aFRR och FFR som GreenVoltis inte budar mot. Antaganden: 85% verkningsgrad (v\u00e5r modell 90%), 1,5 cykler/dygn, 100% tillg\u00e4nglighet, anv\u00e4ndbar energi = m\u00e4rkeffekt \u00d7 uth\u00e5llighet (v\u00e5r modell 90%). V\u00e4rdena visas of\u00f6r\u00e4ndrade \u2014 j\u00e4mf\u00f6relsen \u00e4r d\u00e4rf\u00f6r inte helt likv\u00e4rdig.",
-    "note_en": "The index covers aFRR and FFR, which GreenVoltis does not bid into. Assumptions: 85% round-trip efficiency (our model 90%), 1.5 cycles/day, 100% availability, usable energy = rated power \u00d7 duration (our model 90%). Values are shown unmodified, so the comparison is not fully like-for-like."
+    "note_en": "The index covers aFRR and FFR, which GreenVoltis does not bid into. Assumptions: 85% round-trip efficiency (our model 90%), 1.5 cycles/day, 100% availability, usable energy = rated power \u00d7 duration (our model 90%). Values are shown unmodified, so the comparison is not fully like-for-like.",
+    "may_note_sv": "Korrigerat v\u00e4rde. Clean Horizons publicerade majsiffror f\u00f6r 2h s\u00e5g orimligt l\u00e5ga ut, och 2h-serien ersattes d\u00e4rf\u00f6r med deras annualiserade 170 kEUR/MW delat med 12 (14 167 EUR) i samtliga fyra elprisomr\u00e5den. Observera att h1 och h4 st\u00e5r kvar som original: majraden \u00e4r d\u00e4rmed den enda d\u00e4r h2 \u00e4r ett platt tv\u00e4rzonsv\u00e4rde. Indexets h2/h1-kvot blir 2,81 i maj mot 1,34\u20131,59 \u00f6vriga m\u00e5nader, och majs egna h1 och h4 antyder ett h2 kring 5 200 \u2014 allts\u00e5 att hela m\u00e5naden var svag, inte bara 2h-serien. Korrigeringen \u00e4r konservativ i v\u00e5r fav\u00f6r: ett uppbl\u00e5st index g\u00f6r att vi ser s\u00e4mre ut i maj, inte b\u00e4ttre. Anv\u00e4nd d\u00e4rf\u00f6r inte majsiffran som styrkebesked i kundmaterial.",
+    "may_note_en": "Corrected value. Clean Horizon's published May figures for 2h looked implausibly low, so the 2h series was replaced with their annualised 170 kEUR/MW divided by 12 (14,167 EUR) in all four bidding zones. Note that h1 and h4 remain original: May is therefore the only row where h2 is a flat cross-zone value. The index h2/h1 ratio is 2.81 in May against 1.34\u20131.59 in other months, and May's own h1 and h4 imply an h2 around 5,200 \u2014 i.e. the whole month was weak, not just the 2h series. The correction is conservative in our favour: an inflated index makes us look worse in May, not better. Do not use the May figure as evidence of strength in customer material."
   },
   "index": {
     "SE1": [
@@ -47,8 +49,8 @@
         "h4": 6205.45,
         "corrected": true,
         "flag": "corrected",
-        "note_sv": "Korrigerat: Clean Horizons annualiserade 170 kEUR/MW \u00f7 12",
-        "note_en": "Corrected: Clean Horizon annualised 170 kEUR/MW \u00f7 12"
+        "note_sv": "Korrigerat v\u00e4rde. Clean Horizons publicerade majsiffror f\u00f6r 2h s\u00e5g orimligt l\u00e5ga ut, och 2h-serien ersattes d\u00e4rf\u00f6r med deras annualiserade 170 kEUR/MW delat med 12 (14 167 EUR) i samtliga fyra elprisomr\u00e5den. Observera att h1 och h4 st\u00e5r kvar som original: majraden \u00e4r d\u00e4rmed den enda d\u00e4r h2 \u00e4r ett platt tv\u00e4rzonsv\u00e4rde. Indexets h2/h1-kvot blir 2,81 i maj mot 1,34\u20131,59 \u00f6vriga m\u00e5nader, och majs egna h1 och h4 antyder ett h2 kring 5 200 \u2014 allts\u00e5 att hela m\u00e5naden var svag, inte bara 2h-serien. Korrigeringen \u00e4r konservativ i v\u00e5r fav\u00f6r: ett uppbl\u00e5st index g\u00f6r att vi ser s\u00e4mre ut i maj, inte b\u00e4ttre. Anv\u00e4nd d\u00e4rf\u00f6r inte majsiffran som styrkebesked i kundmaterial.",
+        "note_en": "Corrected value. Clean Horizon's published May figures for 2h looked implausibly low, so the 2h series was replaced with their annualised 170 kEUR/MW divided by 12 (14,167 EUR) in all four bidding zones. Note that h1 and h4 remain original: May is therefore the only row where h2 is a flat cross-zone value. The index h2/h1 ratio is 2.81 in May against 1.34\u20131.59 in other months, and May's own h1 and h4 imply an h2 around 5,200 \u2014 i.e. the whole month was weak, not just the 2h series. The correction is conservative in our favour: an inflated index makes us look worse in May, not better. Do not use the May figure as evidence of strength in customer material."
       },
       {
         "year_month": "2026-06",
@@ -107,8 +109,8 @@
         "h4": 6741.87,
         "corrected": true,
         "flag": "corrected",
-        "note_sv": "Korrigerat: Clean Horizons annualiserade 170 kEUR/MW \u00f7 12",
-        "note_en": "Corrected: Clean Horizon annualised 170 kEUR/MW \u00f7 12"
+        "note_sv": "Korrigerat v\u00e4rde. Clean Horizons publicerade majsiffror f\u00f6r 2h s\u00e5g orimligt l\u00e5ga ut, och 2h-serien ersattes d\u00e4rf\u00f6r med deras annualiserade 170 kEUR/MW delat med 12 (14 167 EUR) i samtliga fyra elprisomr\u00e5den. Observera att h1 och h4 st\u00e5r kvar som original: majraden \u00e4r d\u00e4rmed den enda d\u00e4r h2 \u00e4r ett platt tv\u00e4rzonsv\u00e4rde. Indexets h2/h1-kvot blir 2,81 i maj mot 1,34\u20131,59 \u00f6vriga m\u00e5nader, och majs egna h1 och h4 antyder ett h2 kring 5 200 \u2014 allts\u00e5 att hela m\u00e5naden var svag, inte bara 2h-serien. Korrigeringen \u00e4r konservativ i v\u00e5r fav\u00f6r: ett uppbl\u00e5st index g\u00f6r att vi ser s\u00e4mre ut i maj, inte b\u00e4ttre. Anv\u00e4nd d\u00e4rf\u00f6r inte majsiffran som styrkebesked i kundmaterial.",
+        "note_en": "Corrected value. Clean Horizon's published May figures for 2h looked implausibly low, so the 2h series was replaced with their annualised 170 kEUR/MW divided by 12 (14,167 EUR) in all four bidding zones. Note that h1 and h4 remain original: May is therefore the only row where h2 is a flat cross-zone value. The index h2/h1 ratio is 2.81 in May against 1.34\u20131.59 in other months, and May's own h1 and h4 imply an h2 around 5,200 \u2014 i.e. the whole month was weak, not just the 2h series. The correction is conservative in our favour: an inflated index makes us look worse in May, not better. Do not use the May figure as evidence of strength in customer material."
       },
       {
         "year_month": "2026-06",
@@ -166,8 +168,8 @@
         "h2": 14167.0,
         "h4": 10829.36,
         "corrected": true,
-        "note_sv": "Korrigerat: Clean Horizons annualiserade 170 kEUR/MW \u00f7 12",
-        "note_en": "Corrected: Clean Horizon annualised 170 kEUR/MW \u00f7 12",
+        "note_sv": "Korrigerat v\u00e4rde. Clean Horizons publicerade majsiffror f\u00f6r 2h s\u00e5g orimligt l\u00e5ga ut, och 2h-serien ersattes d\u00e4rf\u00f6r med deras annualiserade 170 kEUR/MW delat med 12 (14 167 EUR) i samtliga fyra elprisomr\u00e5den. Observera att h1 och h4 st\u00e5r kvar som original: majraden \u00e4r d\u00e4rmed den enda d\u00e4r h2 \u00e4r ett platt tv\u00e4rzonsv\u00e4rde. Indexets h2/h1-kvot blir 2,81 i maj mot 1,34\u20131,59 \u00f6vriga m\u00e5nader, och majs egna h1 och h4 antyder ett h2 kring 5 200 \u2014 allts\u00e5 att hela m\u00e5naden var svag, inte bara 2h-serien. Korrigeringen \u00e4r konservativ i v\u00e5r fav\u00f6r: ett uppbl\u00e5st index g\u00f6r att vi ser s\u00e4mre ut i maj, inte b\u00e4ttre. Anv\u00e4nd d\u00e4rf\u00f6r inte majsiffran som styrkebesked i kundmaterial.",
+        "note_en": "Corrected value. Clean Horizon's published May figures for 2h looked implausibly low, so the 2h series was replaced with their annualised 170 kEUR/MW divided by 12 (14,167 EUR) in all four bidding zones. Note that h1 and h4 remain original: May is therefore the only row where h2 is a flat cross-zone value. The index h2/h1 ratio is 2.81 in May against 1.34\u20131.59 in other months, and May's own h1 and h4 imply an h2 around 5,200 \u2014 i.e. the whole month was weak, not just the 2h series. The correction is conservative in our favour: an inflated index makes us look worse in May, not better. Do not use the May figure as evidence of strength in customer material.",
         "flag": "corrected"
       },
       {
@@ -227,8 +229,8 @@
         "h4": 13369.3,
         "corrected": true,
         "flag": "corrected",
-        "note_sv": "Korrigerat: Clean Horizons annualiserade 170 kEUR/MW \u00f7 12",
-        "note_en": "Corrected: Clean Horizon annualised 170 kEUR/MW \u00f7 12"
+        "note_sv": "Korrigerat v\u00e4rde. Clean Horizons publicerade majsiffror f\u00f6r 2h s\u00e5g orimligt l\u00e5ga ut, och 2h-serien ersattes d\u00e4rf\u00f6r med deras annualiserade 170 kEUR/MW delat med 12 (14 167 EUR) i samtliga fyra elprisomr\u00e5den. Observera att h1 och h4 st\u00e5r kvar som original: majraden \u00e4r d\u00e4rmed den enda d\u00e4r h2 \u00e4r ett platt tv\u00e4rzonsv\u00e4rde. Indexets h2/h1-kvot blir 2,81 i maj mot 1,34\u20131,59 \u00f6vriga m\u00e5nader, och majs egna h1 och h4 antyder ett h2 kring 5 200 \u2014 allts\u00e5 att hela m\u00e5naden var svag, inte bara 2h-serien. Korrigeringen \u00e4r konservativ i v\u00e5r fav\u00f6r: ett uppbl\u00e5st index g\u00f6r att vi ser s\u00e4mre ut i maj, inte b\u00e4ttre. Anv\u00e4nd d\u00e4rf\u00f6r inte majsiffran som styrkebesked i kundmaterial.",
+        "note_en": "Corrected value. Clean Horizon's published May figures for 2h looked implausibly low, so the 2h series was replaced with their annualised 170 kEUR/MW divided by 12 (14,167 EUR) in all four bidding zones. Note that h1 and h4 remain original: May is therefore the only row where h2 is a flat cross-zone value. The index h2/h1 ratio is 2.81 in May against 1.34\u20131.59 in other months, and May's own h1 and h4 imply an h2 around 5,200 \u2014 i.e. the whole month was weak, not just the 2h series. The correction is conservative in our favour: an inflated index makes us look worse in May, not better. Do not use the May figure as evidence of strength in customer material."
       },
       {
         "year_month": "2026-06",

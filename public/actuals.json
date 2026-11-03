@@ -119,8 +119,8 @@
         "mw": 1.0,
         "duration_h": 1.0,
         "total": 41717,
-        "availability": 0.965,
-        "note": "Missade en helg, uppskattat varde 1 500 EUR. 30 av 31 dygn i transaktionsraderna. Netto efter energi- och obalanskostnader, brutto fore optimeringsavgift.",
+        "availability": 0.9355,
+        "note": "Ur drift lordag 10 och sondag 11 oktober (10 okt gav 6 EUR, 11 okt saknas helt i transaktionsraderna). 29 av 31 dygn. Uppraknat varde 44 593 EUR ar en OVRE grans: helgdygn ger lagre an manadssnittet, och GreenVoltis egen uppskattning av det missade var 1 500 EUR, vilket motsvarar tillganglighet 0,965. Netto efter energi- och obalanskostnader, brutto fore optimeringsavgift.",
         "components": {
           "cm": 31687,
           "fcr": 0,

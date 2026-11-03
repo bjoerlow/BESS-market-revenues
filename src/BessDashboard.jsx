@@ -6,7 +6,7 @@ const S={
   fcrd:{l:{sv:"FCR-D upp+ned",en:"FCR-D up+down"},c:["#fbbf24","#d97706"],s:{sv:"FCR-D",en:"FCR-D"}},
   fcrn_fcrd:{l:{sv:"FCR-N + FCR-D",en:"FCR-N + FCR-D"},c:["#22d3ee","#0891b2"],s:{sv:"N+D",en:"N+D"}},
   mfrr_conv:{l:{sv:"mFRR konventionell",en:"mFRR conventional"},c:["#fb923c","#ea580c"],s:{sv:"mFRR konv.",en:"mFRR conv."}},
-  mfrr_opt:{l:{sv:"GreenVoltis strategi",en:"GreenVoltis strategy"},c:["#34d399","#059669"],s:{sv:"GV strategi",en:"GV strategy"}},
+  mfrr_opt:{l:{sv:"GreenVoltis strategi (netto)",en:"GreenVoltis strategy (net)"},c:["#34d399","#059669"],s:{sv:"GV netto",en:"GV net"}},
   intraday1:{l:{sv:"Intradag 1 cykel",en:"Intraday 1 cycle"},c:["#c084fc","#9333ea"],s:{sv:"ID 1c",en:"ID 1c"}},
   intraday2:{l:{sv:"Intradag 2 cykler",en:"Intraday 2 cycles"},c:["#a78bfa","#7c3aed"],s:{sv:"ID 2c",en:"ID 2c"}},
   dayahead:{l:{sv:"Day-ahead arbitrage",en:"Day-ahead arbitrage"},c:["#f472b6","#db2777"],s:{sv:"DA arb.",en:"DA arb."}},
@@ -540,6 +540,17 @@ export default function Dashboard(){
               {" = "}<strong style={{color:t.mu}}>{(benchSum.gv/benchSum.idx*100).toFixed(0)}%</strong></>}
             <br/>{bench.methodology?.[lang==="en"?"note_en":"note_sv"]||L.benchNote}
           </div>)}
+          {/* Brutto mot netto ar den viktigaste metodikskillnaden mot indexet och
+              lag tidigare begravd i metodiknotisen. Indexet drar inte av kostnaden
+              for att aterstalla laddningsnivan; vara siffror gor det. For SE4
+              september 2026 var det 24 % av bruttot. */}
+          {hasBench&&bench?.methodology?.[lang==="en"?"basis_en":"basis_sv"]&&(
+            <div style={{marginTop:8,padding:"9px 12px",background:t.mu+"12",
+              border:`1px solid ${t.bd}`,borderRadius:8,fontSize:10.5,
+              color:t.mu,lineHeight:1.65}}>
+              <strong style={{color:t.tx}}>{lang==="en"?"Gross vs net":"Brutto mot netto"}</strong>
+              {" — "}{bench.methodology[lang==="en"?"basis_en":"basis_sv"]}
+            </div>)}
           {benchSum?.corr?.map(m=>(
             <div key={m.ym} style={{marginTop:8,padding:"9px 12px",background:amb+"12",
               border:`1px solid ${amb}33`,borderRadius:8,fontSize:10.5,color:t.mu,lineHeight:1.65}}>

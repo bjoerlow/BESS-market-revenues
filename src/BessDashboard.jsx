@@ -6,7 +6,7 @@ const S={
   fcrd:{l:{sv:"FCR-D upp+ned",en:"FCR-D up+down"},c:["#fbbf24","#d97706"],s:{sv:"FCR-D",en:"FCR-D"}},
   fcrn_fcrd:{l:{sv:"FCR-N + FCR-D",en:"FCR-N + FCR-D"},c:["#22d3ee","#0891b2"],s:{sv:"N+D",en:"N+D"}},
   mfrr_conv:{l:{sv:"mFRR konventionell",en:"mFRR conventional"},c:["#fb923c","#ea580c"],s:{sv:"mFRR konv.",en:"mFRR conv."}},
-  mfrr_opt:{l:{sv:"GreenVoltis strategi (netto)",en:"GreenVoltis strategy (net)"},c:["#34d399","#059669"],s:{sv:"GV netto",en:"GV net"}},
+  mfrr_opt:{l:{sv:"GreenVoltis strategi",en:"GreenVoltis strategy"},c:["#34d399","#059669"],s:{sv:"GV",en:"GV"}},
   intraday1:{l:{sv:"Intradag 1 cykel",en:"Intraday 1 cycle"},c:["#c084fc","#9333ea"],s:{sv:"ID 1c",en:"ID 1c"}},
   intraday2:{l:{sv:"Intradag 2 cykler",en:"Intraday 2 cycles"},c:["#a78bfa","#7c3aed"],s:{sv:"ID 2c",en:"ID 2c"}},
   dayahead:{l:{sv:"Day-ahead arbitrage",en:"Day-ahead arbitrage"},c:["#f472b6","#db2777"],s:{sv:"DA arb.",en:"DA arb."}},
@@ -52,6 +52,8 @@ const TXT={
   inclImb:"inkl. obalans",
   tComparison:"Intäkt & benchmark",tMfrr:"mFRR upp vs ned",tDa:"Day-ahead & obalans",tTable:"Månadstabell",
   mfrrUp:"mFRR upp",mfrrDown:"mFRR ned",dUpDown:"Δ (upp−ned)",perDir:"CM+EAM per riktning",
+  basis:"Grund",basisNet:"Netto",basisGross:"Brutto",
+  basisHint:"Netto = efter kostnad för elinköp på intradag, obalanser och handelsavgifter. Brutto = före återställningskostnaden för mFRR-aktiveringar, vilket är den grund Clean Horizons index redovisas på. Elnätsavgifter dras inte av i något läge.",
   best:"Bäst",up:"UPP",down:"NED",conv:"Konventionell",vsTitle:"Konventionell vs GreenVoltis strategi",
   sameDir:"Samma riktning, olika deltagande",dOptConv:"Δ opt−konv.",diff:"Skillnad",
   convExpl1:"h/dygn mFRR CM. SoC via elhandlare → pauser, ~6% obalans.",convExpl2:"h/dygn FCR-D backfill.",
@@ -104,6 +106,8 @@ const TXT={
   inclImb:"incl. imbalance",
   tComparison:"Revenue & benchmark",tMfrr:"mFRR up vs down",tDa:"Day-ahead & imbalance",tTable:"Monthly table",
   mfrrUp:"mFRR up",mfrrDown:"mFRR down",dUpDown:"Δ (up−down)",perDir:"CM+EAM per direction",
+  basis:"Basis",basisNet:"Net",basisGross:"Gross",
+  basisHint:"Net = after the cost of buying power on the intraday market, imbalances and trading fees. Gross = before the restoration cost of mFRR activations, which is the basis Clean Horizon's index is reported on. Distribution network tariffs are not deducted in either mode.",
   best:"Best",up:"UP",down:"DOWN",conv:"Conventional",vsTitle:"Conventional vs GreenVoltis strategy",
   sameDir:"Same direction, different participation",dOptConv:"Δ opt−conv.",diff:"Difference",
   convExpl1:"h/day mFRR CM. SoC restored via retailer → pauses, ~6% imbalance.",convExpl2:"h/day FCR-D backfill.",
@@ -211,7 +215,7 @@ function genArea(){
 }
 function genSyn(){const m=genArea();return{SE1:m,SE2:m,SE3:m,SE4:m};}
 
-function tx(raw,dur,mw,lang){
+function tx(raw,dur,mw,lang,basis){
   const label=(()=>{try{const[y,m]=raw.year_month.split("-");return new Date(+y,+m-1).toLocaleString(lang==="en"?"en-GB":"sv-SE",{year:"numeric",month:"short"});}catch{return raw.year_month;}})();
   const r={label,ym:raw.year_month};
   SIDS.forEach(sid=>{r[sid]=Math.round((raw[`${sid}_${dur}h`]||0)*mw);});
@@ -232,6 +236,12 @@ function tx(raw,dur,mw,lang){
   r.idExtra=Math.round((raw[`gv_id_extra_${dur}h`]||0)*mw);
   r.fcrnPot=Math.round((raw[`fcrn_potential_${dur}h`]||0)*mw);
   r.fcrnIn=raw.fcrn_in_model!==false;
+  // Aterstallningskostnaden for mFRR-aktiveringar. Clean Horizons index drar
+  // INTE av den (SoC management), sa en likvardig nivajamforelse kraver att
+  // vart netto raknas upp med den. Posten ar noll i manader dar energiblocket
+  // prissatts pa intradagsspreaden - da finns inget brutto att rakna upp till.
+  r.restoreCost=Math.round((raw[`opt_energy_cost_${dur}h`]||0)*mw);
+  if(basis==="gross")r.mfrr_opt=r.mfrr_opt+r.restoreCost;
   return r;
 }
 
@@ -302,6 +312,7 @@ export default function Dashboard(){
   const[bench,setBench]=useState(null);
   // Ljust lage ar standard - det ar lasarens vy och den bar tryckas och delas.
   const[tr,setTr]=useState(12),[isDark,setIsDark]=useState(false);
+  const[basis,setBasis]=useState("net");
   const[lang,setLang]=useState("sv");
   const[sysMw,setSysMw]=useState(1),[sysMwh,setSysMwh]=useState(2);
   const t=isDark?dk:lt;
@@ -331,7 +342,7 @@ export default function Dashboard(){
 
   const toggle=useCallback(id=>{setSel(p=>{const n=new Set(p);n.has(id)?(n.size>1&&n.delete(id)):n.add(id);return n;});},[]);
   const aD=useMemo(()=>rawData?(rawData[area]||rawData["SE3"]||Object.values(rawData)[0]||[]):null,[rawData,area]);
-  const allM=useMemo(()=>aD?aD.map(r=>tx(r,dur,mw,lang)):[],[aD,dur,mw,lang]);
+  const allM=useMemo(()=>aD?aD.map(r=>tx(r,dur,mw,lang,basis)):[],[aD,dur,mw,lang,basis]);
   const tArea=useMemo(()=>tmax?(tmax[area]||[]):[],[tmax,area]);
   const months=useMemo(()=>{
     const base=tr===0?allM:allM.slice(-tr);
@@ -475,6 +486,14 @@ export default function Dashboard(){
           {DURS.map(d=>(<button key={d} onClick={()=>setDur(d)} style={{background:dur===d?(isDark?"#38bdf8":"#0891b2"):t.card,
             color:dur===d?(isDark?"#000":"#fff"):t.mu,border:`1px solid ${dur===d?(isDark?"#38bdf8":"#0891b2"):t.bd}`,
             borderRadius:8,padding:"7px 20px",fontSize:14,cursor:"pointer",fontWeight:600,fontFamily:"'JetBrains Mono'"}}>{d}h</button>))}
+          <div style={{width:1,height:18,background:t.bd,margin:"0 8px"}}/>
+          <span style={{fontSize:9,color:t.dm,textTransform:"uppercase",letterSpacing:"0.08em"}}>{L.basis}</span>
+          {[["net",L.basisNet],["gross",L.basisGross]].map(([k,lb])=>(
+            <button key={k} onClick={()=>setBasis(k)} title={L.basisHint} style={{
+              background:basis===k?(isDark?"#38bdf8":"#0891b2"):t.card,
+              color:basis===k?(isDark?"#000":"#fff"):t.mu,
+              border:`1px solid ${basis===k?(isDark?"#38bdf8":"#0891b2"):t.bd}`,
+              borderRadius:8,padding:"6px 14px",fontSize:11,cursor:"pointer",fontWeight:600}}>{lb}</button>))}
           <div style={{width:1,height:18,background:t.bd,margin:"0 8px"}}/>
           <span style={{fontSize:9,color:t.dm,textTransform:"uppercase",letterSpacing:"0.08em"}}>{L.period}</span>
           {TR.map(r=><Pill key={r.k} active={tr===r.k} onClick={()=>setTr(r.k)} small t={t}>{r.l[lang]}</Pill>)}

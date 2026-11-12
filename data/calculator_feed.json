@@ -1,72 +1,106 @@
 {
   "schema": 1,
-  "generated_at": "2026-10-02T11:48:23+00:00",
-  "source_generated_at": "2026-10-02T10:15:04.195482",
+  "generated_at": "2026-11-09T16:52:06+00:00",
+  "source_generated_at": "2026-11-03T12:13:34.141483",
   "strategy": "mfrr_opt",
   "strategy_label": "GreenVoltis Multi-Market Optimization",
   "duration_h": 2,
   "unit": "EUR/MW/month",
   "down_reg": {
     "SE1": {
-      "mfrrCmDown": 21.4,
-      "fcrDdown": 3.04
+      "mfrrCmDown": 20.68,
+      "fcrDdown": 3.02
     },
     "SE2": {
-      "mfrrCmDown": 14.31,
-      "fcrDdown": 3.04
+      "mfrrCmDown": 13.31,
+      "fcrDdown": 3.02
     },
     "SE3": {
-      "mfrrCmDown": 2.79,
-      "fcrDdown": 3.04
+      "mfrrCmDown": 2.66,
+      "fcrDdown": 3.02
     },
     "SE4": {
-      "mfrrCmDown": 2.8,
-      "fcrDdown": 3.04
+      "mfrrCmDown": 2.66,
+      "fcrDdown": 3.02
     }
   },
   "calibration": {
-    "applied": true,
+    "applied": false,
+    "native_energy_block": true,
     "netting_source": 0.5,
-    "netting_target": 0.65,
-    "eam_restore": true,
-    "note": "Published values include the mFRR EAM activation leg the optimiser omits, and intraday spread capture at GreenVoltis execution quality rather than the pipeline placeholder.",
+    "netting_target": null,
+    "eam_restore": false,
+    "note": "Raw pipeline values. The energy block (EAM + intraday) and the extra intraday arbitrage are modelled natively and calibrated against plant settlements.",
     "per_zone": {
       "SE1": {
-        "raw_annual": 227653,
-        "intraday_uplift_annual": 9408,
-        "eam_restore_annual": 7229,
-        "uplift_pct": 7.3
+        "raw_annual": 230401,
+        "intraday_uplift_annual": 0,
+        "eam_restore_annual": 0,
+        "uplift_pct": 0.0
       },
       "SE2": {
-        "raw_annual": 185049,
-        "intraday_uplift_annual": 9015,
-        "eam_restore_annual": 6435,
-        "uplift_pct": 8.3
+        "raw_annual": 180306,
+        "intraday_uplift_annual": 0,
+        "eam_restore_annual": 0,
+        "uplift_pct": 0.0
       },
       "SE3": {
-        "raw_annual": 162117,
-        "intraday_uplift_annual": 10663,
-        "eam_restore_annual": 8202,
-        "uplift_pct": 11.6
+        "raw_annual": 189222,
+        "intraday_uplift_annual": 0,
+        "eam_restore_annual": 0,
+        "uplift_pct": 0.0
       },
       "SE4": {
-        "raw_annual": 249444,
-        "intraday_uplift_annual": 17800,
-        "eam_restore_annual": 15070,
-        "uplift_pct": 13.2
+        "raw_annual": 306689,
+        "intraday_uplift_annual": 0,
+        "eam_restore_annual": 0,
+        "uplift_pct": 0.0
       }
     }
   },
   "duration_multipliers": {
-    "1": 0.705,
+    "1": 0.833,
     "2": 1.0,
-    "3": 1.15,
-    "4": 1.3
+    "3": 1.135,
+    "4": 1.27
+  },
+  "duration_multipliers_by_zone": {
+    "SE1": {
+      "1": 0.901,
+      "2": 1.0,
+      "3": 1.083,
+      "4": 1.167
+    },
+    "SE2": {
+      "1": 0.862,
+      "2": 1.0,
+      "3": 1.118,
+      "4": 1.236
+    },
+    "SE3": {
+      "1": 0.727,
+      "2": 1.0,
+      "3": 1.224,
+      "4": 1.448
+    },
+    "SE4": {
+      "1": 0.84,
+      "2": 1.0,
+      "3": 1.115,
+      "4": 1.231
+    }
   },
   "duration_benchmarked": [
     "1",
     "2"
   ],
+  "strategy_cycles": {
+    "SE1": 1.3,
+    "SE2": 1.3,
+    "SE3": 2.0,
+    "SE4": 1.3
+  },
+  "strategy_cycles_source": "calculator.py",
   "months_available": [
     "2026-01",
     "2026-02",
@@ -76,7 +110,8 @@
     "2026-06",
     "2026-07",
     "2026-08",
-    "2026-09"
+    "2026-09",
+    "2026-10"
   ],
   "months_published": [
     "2026-01",
@@ -87,52 +122,57 @@
     "2026-06",
     "2026-07",
     "2026-08",
-    "2026-09"
+    "2026-09",
+    "2026-10"
   ],
   "zones": {
     "SE1": {
-      "2026-01": 20348,
-      "2026-02": 18582,
-      "2026-03": 21809,
-      "2026-04": 23706,
-      "2026-05": 20300,
-      "2026-06": 19478,
-      "2026-07": 19888,
-      "2026-08": 19495,
-      "2026-09": 19612
+      "2026-01": 19330,
+      "2026-02": 17130,
+      "2026-03": 21783,
+      "2026-04": 23635,
+      "2026-05": 19417,
+      "2026-06": 19205,
+      "2026-07": 20009,
+      "2026-08": 19520,
+      "2026-09": 18811,
+      "2026-10": 13161
     },
     "SE2": {
-      "2026-01": 20856,
-      "2026-02": 18867,
-      "2026-03": 18764,
-      "2026-04": 12668,
-      "2026-05": 16363,
-      "2026-06": 18402,
-      "2026-07": 17073,
-      "2026-08": 14359,
-      "2026-09": 13023
+      "2026-01": 19807,
+      "2026-02": 17394,
+      "2026-03": 18650,
+      "2026-04": 11581,
+      "2026-05": 15256,
+      "2026-06": 17362,
+      "2026-07": 17038,
+      "2026-08": 13890,
+      "2026-09": 11862,
+      "2026-10": 7415
     },
     "SE3": {
-      "2026-01": 23536,
-      "2026-02": 19980,
-      "2026-03": 12833,
-      "2026-04": 10857,
-      "2026-05": 16981,
-      "2026-06": 17538,
-      "2026-07": 12146,
-      "2026-08": 11242,
-      "2026-09": 10625
+      "2026-01": 24540,
+      "2026-02": 21148,
+      "2026-03": 12272,
+      "2026-04": 10159,
+      "2026-05": 18693,
+      "2026-06": 18121,
+      "2026-07": 12848,
+      "2026-08": 12029,
+      "2026-09": 13507,
+      "2026-10": 14368
     },
     "SE4": {
-      "2026-01": 24804,
-      "2026-02": 21242,
-      "2026-03": 25700,
-      "2026-04": 18830,
-      "2026-05": 22932,
-      "2026-06": 23752,
-      "2026-07": 28014,
-      "2026-08": 18742,
-      "2026-09": 27718
+      "2026-01": 23619,
+      "2026-02": 20753,
+      "2026-03": 24745,
+      "2026-04": 17685,
+      "2026-05": 21310,
+      "2026-06": 22401,
+      "2026-07": 28695,
+      "2026-08": 18603,
+      "2026-09": 27706,
+      "2026-10": 50057
     }
   }
 }

@@ -11,7 +11,7 @@ const S={
   intraday2:{l:{sv:"Intradag 2 cykler",en:"Intraday 2 cycles"},c:["#a78bfa","#7c3aed"],s:{sv:"ID 2c",en:"ID 2c"}},
   dayahead:{l:{sv:"Day-ahead arbitrage",en:"Day-ahead arbitrage"},c:["#f472b6","#db2777"],s:{sv:"DA arb.",en:"DA arb."}},
 };
-const SIDS=Object.keys(S),DURS=[1,2,4];
+const SIDS=Object.keys(S),DURS=[1,2];
 const TR=[{k:6,l:{sv:"6 mån",en:"6 mo"}},{k:12,l:{sv:"12 mån",en:"12 mo"}},{k:24,l:{sv:"24 mån",en:"24 mo"}},{k:0,l:{sv:"Alla",en:"All"}}];
 const FH={1:24,2:24,4:24},FCR_DUAL=0.87,USABLE=0.90,LOT=0.1,NEM_N=0.12,NEM_D=0.02,ACC_N=0.95,ACC_D=0.95,OE={1:2.5,2:5,4:8},CH={1:12,2:16,4:20},CB={1:12,2:8,4:4},CE={1:2,2:3,4:5};
 const OH={1:24,2:24,4:24},OB={1:0,2:0,4:0},EM={1:1.0,2:1.8,4:3.2};
@@ -55,7 +55,6 @@ const TXT={
   samePer:"samma månader",
   calcTitle:"Så räknar vi",
   calcBody:"GreenVoltis siffror är intäkter efter kostnader för elinköp, obalanser och Nord Pool-avgifter — det batteriet faktiskt tjänar, före GreenVoltis optimeringsavgift. Elnätsavgifter ingår inte. Clean Horizons index redovisas före sådana kostnader, så jämförelsen är försiktigt räknad för vår del.",
-  dur4:"4h är modellerat — det finns ännu ingen anläggning i drift med fyra timmars uthållighet att kalibrera mot.",
   convIB:"återställer laddningsnivån efter en aktivering via elhandlaren. Det ger pauser i budgivningen och kostnader för avgifter, obalanser och elhandlarens marginal på omkring 10 öre/kWh.",
   gvIB:"återställer laddningsnivån direkt på intradagsmarknaden — utan pauser och utan elhandlarens påslag.",
   fcrExpl:"Visar hur mycket FCR-D och FCR-N bidrar till strategins intäkt, beräknat som samma modell med och utan respektive tjänst.",
@@ -87,7 +86,7 @@ const TXT={
   sysSub:"Ange effekt och energi. Beräkningen använder samma strategimodell som zonjämförelsen.",
   sysTotal:"Totalt",sysPerMw:"per MW",sysPerMwh:"per MWh",
   sysModelled:"Över C/2,5 finns ingen anläggning att kalibrera mot — siffran är enbart modellerad.",
-  sysMax:"Maximalt C/4. Ange mer effekt eller mindre energi.",
+  sysMax:"Maximalt C/2,5 — längre uthållighet finns det ännu inget utfall att kalibrera mot. Ange mer effekt eller mindre energi.",
   sysNoGrid:"Kör om pipelinen för att få C-talsrutnätet i monthly_revenue_all.json.",
   benchNote:"Indexet räknar på day-ahead, intradag, FCR-N, FCR-D och mFRR, med 85 % verkningsgrad och full användbar energi. Värdena visas oförändrade.",
   vsIndex:"mot index",benchPartial:"korrigerat värde ur CH:s annualiserade tal",
@@ -99,10 +98,10 @@ const TXT={
   manualNote:"manuellt satt intradagsspread — ingår ej i valideringen",
   ofActual:"av faktiskt utfall",monthsShort:"mån",validatedIn:"validerat mot",
   notModelled:"ny strategigeneration — ej modellerad",
-  fPhys:"Batteriet",fPhysB:"Intäkt per MW · 1h, 2h och 4h|Verkningsgrad 90 %, 90 % användbar energi|Bud i steg om 100 kW|Full tillgänglighet om inget annat anges",
+  fPhys:"Batteriet",fPhysB:"Intäkt per MW · 1h och 2h|Verkningsgrad 90 %, 90 % användbar energi|Bud i steg om 100 kW|Full tillgänglighet om inget annat anges",
   fPart:"Marknader",fPartB:"mFRR kapacitet och aktivering|FCR-N och FCR-D|Intradag och day-ahead|Strategin väljs per elprisområde och månad",
   fSrc:"Datakällor",fSrcB:"Marknadspriser: Aether (Svenska kraftnät, Nord Pool)|Benchmark: Clean Horizon Storage Index|Utfall: GreenVoltis anläggningar i drift",
-  fCalc:"Referenser",fCalcB:"Konventionell: aggregator som återställer laddning via elhandlare|Marknadstak: perfekt framförhållning per kvart, 2 cykler/dygn|Taket är ett mått, inte ett mål|Modellen kalibreras mot faktiskt utfall"},
+  fCalc:"Referenser",fCalcB:"Konventionell: aggregator som återställer laddning via elhandlare|Marknadstak: perfekt framförhållning per kvart, 1,5 cykler/dygn|Taket är ett mått, inte ett mål|Modellen kalibreras mot faktiskt utfall"},
  en:{sub:"Revenue analysis by service and strategy",synth:"Synthetic data",pipe:"Pipeline data",
   zone:"Bidding zone",dura:"Duration",period:"Period",light:"☀ Light",dark:"● Dark",show:"Show",
   loading:"Loading data…",mo:"mo",months:"months",last:"Last",allMonths:"All months",eurMo:"EUR/month",
@@ -114,7 +113,6 @@ const TXT={
   samePer:"same months",
   calcTitle:"How we count",
   calcBody:"GreenVoltis figures are revenue after the cost of power purchases, imbalances and Nord Pool fees — what the battery actually earns, before the GreenVoltis optimisation fee. Grid tariffs are not included. The Clean Horizon index is reported before such costs, so the comparison is conservative on our side.",
-  dur4:"4h is modelled — there is no operating four-hour site to calibrate against yet.",
   convIB:"restores state of charge after an activation through the electricity retailer. That causes pauses in bidding and costs for fees, imbalances and the retailer's margin of around SEK 0.10/kWh.",
   gvIB:"restores state of charge directly on the intraday market — without pauses and without the retailer's mark-up.",
   fcrExpl:"Shows how much FCR-D and FCR-N contribute to the strategy's revenue, computed as the same model with and without each service.",
@@ -146,7 +144,7 @@ const TXT={
   sysSub:"Enter power and energy. Uses the same strategy model as the zone comparison.",
   sysTotal:"Total",sysPerMw:"per MW",sysPerMwh:"per MWh",
   sysModelled:"Above C/2.5 there is no site to calibrate against — the figure is modelled only.",
-  sysMax:"Maximum C/4. Increase power or reduce energy.",
+  sysMax:"Maximum C/2.5 — there are no outcomes yet to calibrate longer durations against. Increase power or reduce energy.",
   sysNoGrid:"Re-run the pipeline to get the C-rate grid into monthly_revenue_all.json.",
   benchNote:"The index covers day-ahead, intraday, FCR-N, FCR-D and mFRR, with 85% round-trip efficiency and full usable energy. Values are shown unmodified.",
   vsIndex:"vs index",benchPartial:"value corrected from CH annualised figure",
@@ -158,10 +156,10 @@ const TXT={
   manualNote:"manually set intraday spread — excluded from validation",
   ofActual:"of actual outcome",monthsShort:"mo",validatedIn:"validated against",
   notModelled:"new strategy generation — not modelled",
-  fPhys:"The battery",fPhysB:"Revenue per MW · 1h, 2h and 4h|Round-trip efficiency 90%, 90% usable energy|Bids in 100 kW steps|Full availability unless stated",
+  fPhys:"The battery",fPhysB:"Revenue per MW · 1h and 2h|Round-trip efficiency 90%, 90% usable energy|Bids in 100 kW steps|Full availability unless stated",
   fPart:"Markets",fPartB:"mFRR capacity and activation|FCR-N and FCR-D|Intraday and day-ahead|Strategy chosen per bidding zone and month",
   fSrc:"Data sources",fSrcB:"Market prices: Aether (Svenska kraftnät, Nord Pool)|Benchmark: Clean Horizon Storage Index|Outcomes: GreenVoltis operating sites",
-  fCalc:"References",fCalcB:"Conventional: aggregator restoring charge via a retailer|Ceiling: perfect foresight per quarter, 2 cycles/day|The ceiling is a yardstick, not a target|The model is calibrated against actual outcomes"}
+  fCalc:"References",fCalcB:"Conventional: aggregator restoring charge via a retailer|Ceiling: perfect foresight per quarter, 1.5 cycles/day|The ceiling is a yardstick, not a target|The model is calibrated against actual outcomes"}
 };
 
 
@@ -413,7 +411,8 @@ export default function Dashboard(){
   const proxyMonths=useMemo(()=>monthsA.filter(m=>m.spreadSrc==="da_proxy"),[monthsA]);
 
   // Systemkalkyl: interpolera mellan närmaste C-tal i rutnätet, skala med MW.
-  const CMAX=4.0, CVAL=2.5;
+  // Max C/2,5: det ar vad som finns att kalibrera mot (Skynet 2,5 MWh).
+  const CMAX=2.5, CVAL=2.5;
   const sys=useMemo(()=>{
     if(!aD||!aD.length)return null;
     const keys=Object.keys(aD[0]).filter(k=>/^c[\d.]+$/.test(k))
@@ -521,9 +520,6 @@ export default function Dashboard(){
             fontFamily:"Georgia,serif"}}>i</span>
           <span><strong style={{color:t.tx}}>{L.calcTitle}.</strong> {L.calcBody}</span>
         </div>
-        {dur===4&&(<div style={{marginBottom:12,padding:"10px 14px",background:amb+"12",
-          border:`1px solid ${amb}33`,borderRadius:8,fontSize:11,color:t.mu}}>
-          <strong style={{color:amb}}>4h</strong> — {L.dur4}</div>)}
         {valid&&(<div style={{marginBottom:16,padding:"10px 14px",background:t.cA,
           border:`1px solid ${grn}33`,borderRadius:8,fontSize:11,color:t.mu,
           display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>

@@ -1,5 +1,5 @@
 {
-  "_comment": "Faktiskt utfall och strategiversioner. Underhalls for hand. total = verkligt utfall i EUR for hela anlaggningen, aldrig justerat. availability = andel av manaden anlaggningen var i drift (1.0 = hela). duration_h styr vid vilken uthallighet punkterna visas: 2.5 visas vid 2h, 1.0 vid 1h.",
+  "_comment": "Faktiskt utfall från GreenVoltis anläggningar i drift. total = intäkt i EUR för hela anläggningen efter kostnader för elinköp, obalanser och Nord Pool-avgifter, före GreenVoltis optimeringsavgift. availability = andel av månaden i drift. Komponentuppdelning och budvolymer finns i bess-pipeline/data/actuals_internal.json och publiceras inte.",
   "strategy_versions": [
     {
       "from": "2025-09",
@@ -16,12 +16,8 @@
         "duration_h": 2.5,
         "total": 11255,
         "availability": 1.0,
-        "note": "",
-        "components": {
-          "cm": 8372,
-          "energy": 3732,
-          "eam_activation": -849
-        }
+        "note_sv": "",
+        "note_en": ""
       },
       {
         "year_month": "2026-05",
@@ -30,8 +26,8 @@
         "duration_h": 2.5,
         "total": 15570,
         "availability": 1.0,
-        "note": "",
-        "components": {}
+        "note_sv": "",
+        "note_en": ""
       },
       {
         "year_month": "2026-06",
@@ -40,8 +36,8 @@
         "duration_h": 2.5,
         "total": 18016,
         "availability": 1.0,
-        "note": "",
-        "components": {}
+        "note_sv": "",
+        "note_en": ""
       },
       {
         "year_month": "2026-07",
@@ -50,8 +46,8 @@
         "duration_h": 2.5,
         "total": 15738,
         "availability": 0.952,
-        "note": "Offline halva 30 juli och hela 31 juli (29,5 av 31 dygn)",
-        "components": {}
+        "note_sv": "Ur drift halva 30 juli och hela 31 juli (29,5 av 31 dygn).",
+        "note_en": "Offline for half of 30 July and all of 31 July (29.5 of 31 days)."
       },
       {
         "year_month": "2026-08",
@@ -60,8 +56,8 @@
         "duration_h": 2.5,
         "total": 13967,
         "availability": 1.0,
-        "note": "",
-        "components": {}
+        "note_sv": "",
+        "note_en": ""
       },
       {
         "year_month": "2026-09",
@@ -70,8 +66,8 @@
         "duration_h": 2.5,
         "total": 11512,
         "availability": 1.0,
-        "note": "",
-        "components": {}
+        "note_sv": "",
+        "note_en": ""
       },
       {
         "year_month": "2026-10",
@@ -80,15 +76,8 @@
         "duration_h": 2.5,
         "total": 6934,
         "availability": 1.0,
-        "note": "Vaxlade lage 7 oktober: mFRR 1-6 okt, darefter FCR-N 0,485 MW plus FCR-D 0,47/0,45 MW upp/ned i 25 dygn. Extra intradagsarbitrage kordes inte.",
-        "components": {
-          "fcrn": 4706,
-          "fcrd_up": 764,
-          "fcrd_down": 768,
-          "cm": 492,
-          "eam": 284,
-          "intraday": -80
-        }
+        "note_sv": "",
+        "note_en": ""
       }
     ],
     "SE4": [
@@ -99,19 +88,8 @@
         "duration_h": 1.0,
         "total": 21765,
         "availability": 1.0,
-        "note": "Full drift 30 av 30 dygn. Budad effekt i snitt: mFRR CM upp 0,93 MW, FCR-D 0,05 MW.",
-        "components": {
-          "cm": 18795,
-          "fcr": 182,
-          "eam": 9815,
-          "intraday": -7027
-        },
-        "volumes_mwh": {
-          "eam_up": 50.83,
-          "eam_down": 5.5,
-          "energy": 60.98,
-          "cm_up_mwh": 670.0
-        }
+        "note_sv": "",
+        "note_en": ""
       },
       {
         "year_month": "2026-10",
@@ -120,15 +98,9 @@
         "duration_h": 1.0,
         "total": 41717,
         "availability": 0.9355,
-        "note": "Ur drift lordag 10 och sondag 11 oktober (10 okt gav 6 EUR, 11 okt saknas helt i transaktionsraderna). 29 av 31 dygn. Uppraknat varde 44 593 EUR ar en OVRE grans: helgdygn ger lagre an manadssnittet, och GreenVoltis egen uppskattning av det missade var 1 500 EUR, vilket motsvarar tillganglighet 0,965. Netto efter energi- och obalanskostnader, brutto fore optimeringsavgift.",
-        "components": {
-          "cm": 31687,
-          "fcr": 0,
-          "eam": 25450,
-          "intraday": -15420
-        }
+        "note_sv": "Ur drift lördag 10 och söndag 11 oktober (29 av 31 dygn).",
+        "note_en": "Offline Saturday 10 and Sunday 11 October (29 of 31 days)."
       }
     ]
-  },
-  "_basis": "Alla belopp ar NETTO: energikostnaden for att aterstalla laddningsnivan efter mFRR-aktivering, obalanskostnader och handelsavgifter ar avdragna. Beloppen ar brutto fore GreenVoltis optimeringsavgift. Clean Horizons index redovisas brutto - se benchmark.json 'basis_sv'."
+  }
 }

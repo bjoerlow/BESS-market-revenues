@@ -11,7 +11,7 @@ const S={
   intraday2:{l:{sv:"Intradag 2 cykler",en:"Intraday 2 cycles"},c:["#a78bfa","#7c3aed"],s:{sv:"ID 2c",en:"ID 2c"}},
   dayahead:{l:{sv:"Day-ahead arbitrage",en:"Day-ahead arbitrage"},c:["#f472b6","#db2777"],s:{sv:"DA arb.",en:"DA arb."}},
 };
-const SIDS=Object.keys(S),DURS=[1,2];
+const SIDS=Object.keys(S),DURS=[1,2,4];
 const TR=[{k:6,l:{sv:"6 mån",en:"6 mo"}},{k:12,l:{sv:"12 mån",en:"12 mo"}},{k:24,l:{sv:"24 mån",en:"24 mo"}},{k:0,l:{sv:"Alla",en:"All"}}];
 const FH={1:24,2:24,4:24},FCR_DUAL=0.87,USABLE=0.90,LOT=0.1,NEM_N=0.12,NEM_D=0.02,ACC_N=0.95,ACC_D=0.95,OE={1:2.5,2:5,4:8},CH={1:12,2:16,4:20},CB={1:12,2:8,4:4},CE={1:2,2:3,4:5};
 const OH={1:24,2:24,4:24},OB={1:0,2:0,4:0},EM={1:1.0,2:1.8,4:3.2};
@@ -48,17 +48,22 @@ const TXT={
   zone:"Elområde",dura:"Uthållighet",period:"Period",light:"☀ Ljust",dark:"● Mörkt",show:"Visa",
   loading:"Laddar data…",mo:"mån",months:"månader",last:"Senaste",allMonths:"Alla månader",eurMo:"EUR/mån",
   noData:"mFRR CM/EAM-data saknas",noDataRest:"— ladda ner CSV från mimer.svk.se → data/manual/",
-  ceiling:"Marknadstak",foresight:"perfekt framförhållning",ofCeil:"av tak",reqBess:"2,5h BESS",
+  ceiling:"Marknadstak",foresight:"perfekt framförhållning",ofCeil:"av tak",
   inclImb:"inkl. obalans",
   tComparison:"Intäkt & benchmark",tMfrr:"mFRR upp vs ned",tDa:"Day-ahead & obalans",tTable:"Månadstabell",
   mfrrUp:"mFRR upp",mfrrDown:"mFRR ned",dUpDown:"Δ (upp−ned)",perDir:"CM+EAM per riktning",
-  basis:"Grund",basisNet:"Netto",basisGross:"Brutto",
-  basisHint:"Netto = efter kostnad för elinköp på intradag, obalanser och handelsavgifter. Brutto = före återställningskostnaden för mFRR-aktiveringar, vilket är den grund Clean Horizons index redovisas på. Elnätsavgifter dras inte av i något läge.",
+  samePer:"samma månader",
+  calcTitle:"Så räknar vi",
+  calcBody:"GreenVoltis siffror är intäkter efter kostnader för elinköp, obalanser och Nord Pool-avgifter — det batteriet faktiskt tjänar, före GreenVoltis optimeringsavgift. Elnätsavgifter ingår inte. Clean Horizons index redovisas före sådana kostnader, så jämförelsen är försiktigt räknad för vår del.",
+  dur4:"4h är modellerat — det finns ännu ingen anläggning i drift med fyra timmars uthållighet att kalibrera mot.",
+  convIB:"återställer laddningsnivån efter en aktivering via elhandlaren. Det ger pauser i budgivningen och kostnader för avgifter, obalanser och elhandlarens marginal på omkring 10 öre/kWh.",
+  gvIB:"återställer laddningsnivån direkt på intradagsmarknaden — utan pauser och utan elhandlarens påslag.",
+  fcrExpl:"Visar hur mycket FCR-D och FCR-N bidrar till strategins intäkt, beräknat som samma modell med och utan respektive tjänst.",
+  extraExpl:"Ett batteri som redan ligger på mFRR kan handla på intradag i de kvartar det inte aktiveras. Används i SE3 och SE4, där intradagsspreaden är störst.",
   best:"Bäst",up:"UPP",down:"NED",conv:"Konventionell",vsTitle:"Konventionell vs GreenVoltis strategi",
   sameDir:"Samma riktning, olika deltagande",dOptConv:"Δ opt−konv.",diff:"Skillnad",
   convExpl1:"h/dygn mFRR CM. SoC via elhandlare → pauser, ~6% obalans.",convExpl2:"h/dygn FCR-D backfill.",
   gvExpl1:"h/dygn CM,",gvExpl2:"EAM-akt/dag vs",gvBf:"h/dygn FCR-D backfill.",
-  gvNote:"Not: 2h GreenVoltis strategi förutsätter ett 2,5h BESS.",
   daTitle:"Day-ahead arbitrage",daSub:"85% capture · ~8% obalanskostnad",
   grossArb:"Bruttoarbitrage",imbCost:"Obalanskostnad",netRev:"Nettointäkt",id2ref:"Intradag 2c (jmf)",
   daNet:"DA netto",daGross:"DA brutto",id2c:"Intradag 2c",
@@ -84,35 +89,40 @@ const TXT={
   sysModelled:"Över C/2,5 finns ingen anläggning att kalibrera mot — siffran är enbart modellerad.",
   sysMax:"Maximalt C/4. Ange mer effekt eller mindre energi.",
   sysNoGrid:"Kör om pipelinen för att få C-talsrutnätet i monthly_revenue_all.json.",
-  benchNote:"Indexet omfattar aFRR och FFR som inte ingår i strategierna, och bygger på 85% verkningsgrad och full användbar energi. Värdena visas oförändrade.",
+  benchNote:"Indexet räknar på day-ahead, intradag, FCR-N, FCR-D och mFRR, med 85 % verkningsgrad och full användbar energi. Värdena visas oförändrade.",
   vsIndex:"mot index",benchPartial:"korrigerat värde ur CH:s annualiserade tal",
   altTitle:"Vad alternativen hade gett",
   altSub:"Samma priser, samma batteri, andra strategival · hela perioden",
-  altNote:"Staplarna visar vad varje enskild strategi hade gett över perioden. GreenVoltis-strategin kombinerar mFRR-kapacitet dygnet runt med FCR-D i den riktning mFRR lämnar fri och energihandel på återstående band — den är därför inte summan av de andra utan ett annat sätt att använda samma batteri.",
+  altNote:"Staplarna visar vad varje enskild strategi hade gett över perioden med samma priser och samma batteri. GreenVoltis strategi väljer och kombinerar marknader efter vad som betalar bäst i varje elprisområde — den är därför inte summan av de andra.",
   altShow:"Visa i diagrammet",
   proxyNote:"härledd intradagsspread (day-ahead × 1,2) — osäker när marknaderna frikopplas",
   manualNote:"manuellt satt intradagsspread — ingår ej i valideringen",
   ofActual:"av faktiskt utfall",monthsShort:"mån",validatedIn:"validerat mot",
   notModelled:"ny strategigeneration — ej modellerad",
-  fPhys:"Uthållighetsfysik",fPhysB:"FCR-D: 0,8 MW båda riktningar, 1,0 i en|FCR-N: 0,4 MW (1h) / 0,8 MW (2h)|FCR-N+D: jämn fördelning, diversifiering|NEM-återhämtning avdragen|Budacceptans 95%|GV mFRR 2h: kräver 2,5h BESS|4h utelämnad tills benchmark finns",
-  fPart:"mFRR deltagande",fPartB:"Konv: 1h→12h, 2h→16h/dygn|GV: 24h/dygn CM båda uthålligheterna|1h: färre aktiveringar och halva MWh intradag|Riktning vald på faktisk månadsintäkt",
-  fSrc:"Datakällor",fSrcB:"FCR-N/D: Mimer (SVK)|mFRR CM/EAM: Mimer CSV (manuell)|Intraday: Nord Pool / DA-proxy|Day-ahead: ENTSO-E TP|Benchmark: Clean Horizon Index",
-  fCalc:"Beräkning",fCalcB:"8 strategier × 2 uthålligheter|RTE: 90% · FCR-D upp/ned: 87%|Intradag: 75%/50% capture|GV intradag: 90%/75% capture|DA: 85% capture, ~8% obalans|Marknadstak: LP per kvart, 1,3 cykler/dygn"},
+  fPhys:"Batteriet",fPhysB:"Intäkt per MW · 1h, 2h och 4h|Verkningsgrad 90 %, 90 % användbar energi|Bud i steg om 100 kW|Full tillgänglighet om inget annat anges",
+  fPart:"Marknader",fPartB:"mFRR kapacitet och aktivering|FCR-N och FCR-D|Intradag och day-ahead|Strategin väljs per elprisområde och månad",
+  fSrc:"Datakällor",fSrcB:"Marknadspriser: Aether (Svenska kraftnät, Nord Pool)|Benchmark: Clean Horizon Storage Index|Utfall: GreenVoltis anläggningar i drift",
+  fCalc:"Referenser",fCalcB:"Konventionell: aggregator som återställer laddning via elhandlare|Marknadstak: perfekt framförhållning per kvart, 2 cykler/dygn|Taket är ett mått, inte ett mål|Modellen kalibreras mot faktiskt utfall"},
  en:{sub:"Revenue analysis by service and strategy",synth:"Synthetic data",pipe:"Pipeline data",
   zone:"Bidding zone",dura:"Duration",period:"Period",light:"☀ Light",dark:"● Dark",show:"Show",
   loading:"Loading data…",mo:"mo",months:"months",last:"Last",allMonths:"All months",eurMo:"EUR/month",
   noData:"mFRR CM/EAM data missing",noDataRest:"— download CSV from mimer.svk.se → data/manual/",
-  ceiling:"Market ceiling",foresight:"perfect foresight",ofCeil:"of ceiling",reqBess:"2.5h BESS",
+  ceiling:"Market ceiling",foresight:"perfect foresight",ofCeil:"of ceiling",
   inclImb:"incl. imbalance",
   tComparison:"Revenue & benchmark",tMfrr:"mFRR up vs down",tDa:"Day-ahead & imbalance",tTable:"Monthly table",
   mfrrUp:"mFRR up",mfrrDown:"mFRR down",dUpDown:"Δ (up−down)",perDir:"CM+EAM per direction",
-  basis:"Basis",basisNet:"Net",basisGross:"Gross",
-  basisHint:"Net = after the cost of buying power on the intraday market, imbalances and trading fees. Gross = before the restoration cost of mFRR activations, which is the basis Clean Horizon's index is reported on. Distribution network tariffs are not deducted in either mode.",
+  samePer:"same months",
+  calcTitle:"How we count",
+  calcBody:"GreenVoltis figures are revenue after the cost of power purchases, imbalances and Nord Pool fees — what the battery actually earns, before the GreenVoltis optimisation fee. Grid tariffs are not included. The Clean Horizon index is reported before such costs, so the comparison is conservative on our side.",
+  dur4:"4h is modelled — there is no operating four-hour site to calibrate against yet.",
+  convIB:"restores state of charge after an activation through the electricity retailer. That causes pauses in bidding and costs for fees, imbalances and the retailer's margin of around SEK 0.10/kWh.",
+  gvIB:"restores state of charge directly on the intraday market — without pauses and without the retailer's mark-up.",
+  fcrExpl:"Shows how much FCR-D and FCR-N contribute to the strategy's revenue, computed as the same model with and without each service.",
+  extraExpl:"A battery already committed to mFRR can trade intraday in the quarters it is not activated. Used in SE3 and SE4, where the intraday spread is widest.",
   best:"Best",up:"UP",down:"DOWN",conv:"Conventional",vsTitle:"Conventional vs GreenVoltis strategy",
   sameDir:"Same direction, different participation",dOptConv:"Δ opt−conv.",diff:"Difference",
   convExpl1:"h/day mFRR CM. SoC restored via retailer → pauses, ~6% imbalance.",convExpl2:"h/day FCR-D backfill.",
   gvExpl1:"h/day CM,",gvExpl2:"EAM activations/day vs",gvBf:"h/day FCR-D backfill.",
-  gvNote:"Note: 2h GreenVoltis strategy assumes a 2.5h BESS.",
   daTitle:"Day-ahead arbitrage",daSub:"85% capture · ~8% imbalance cost",
   grossArb:"Gross arbitrage",imbCost:"Imbalance cost",netRev:"Net revenue",id2ref:"Intraday 2c (ref)",
   daNet:"DA net",daGross:"DA gross",id2c:"Intraday 2c",
@@ -138,20 +148,20 @@ const TXT={
   sysModelled:"Above C/2.5 there is no site to calibrate against — the figure is modelled only.",
   sysMax:"Maximum C/4. Increase power or reduce energy.",
   sysNoGrid:"Re-run the pipeline to get the C-rate grid into monthly_revenue_all.json.",
-  benchNote:"The index covers aFRR and FFR, which the strategies do not, and assumes 85% round-trip efficiency and full usable energy. Values are shown unmodified.",
+  benchNote:"The index covers day-ahead, intraday, FCR-N, FCR-D and mFRR, with 85% round-trip efficiency and full usable energy. Values are shown unmodified.",
   vsIndex:"vs index",benchPartial:"value corrected from CH annualised figure",
   altTitle:"What the alternatives would have given",
   altSub:"Same prices, same battery, different strategy · whole period",
-  altNote:"The bars show what each single strategy would have earned over the period. The GreenVoltis strategy combines round-the-clock mFRR capacity with FCR-D in the direction mFRR leaves free and energy trading on the remaining band — it is therefore not the sum of the others but a different way of using the same battery.",
+  altNote:"The bars show what each single strategy would have earned over the period on the same prices and the same battery. The GreenVoltis strategy selects and combines markets by what pays best in each bidding zone — it is therefore not the sum of the others.",
   altShow:"Show in chart",
   proxyNote:"derived intraday spread (day-ahead × 1.2) — unreliable when the markets decouple",
   manualNote:"manually set intraday spread — excluded from validation",
   ofActual:"of actual outcome",monthsShort:"mo",validatedIn:"validated against",
   notModelled:"new strategy generation — not modelled",
-  fPhys:"Duration physics",fPhysB:"FCR-D: 0.8 MW both directions, 1.0 one|FCR-N: 0.4 MW (1h) / 0.8 MW (2h)|FCR-N+D: balanced split, diversification|NEM recovery deducted|Bid acceptance 95%|GV mFRR 2h: requires 2.5h BESS|4h omitted until benchmark exists",
-  fPart:"mFRR participation",fPartB:"Conv: 1h→12h, 2h→16h/day|GV: 24h/day CM at both durations|1h: fewer activations, half the intraday MWh|Direction chosen on actual monthly revenue",
-  fSrc:"Data sources",fSrcB:"FCR-N/D: Mimer (SVK)|mFRR CM/EAM: Mimer CSV (manual)|Intraday: Nord Pool / DA proxy|Day-ahead: ENTSO-E TP|Benchmark: Clean Horizon Index",
-  fCalc:"Calculation",fCalcB:"8 strategies × 2 durations|RTE: 90% · FCR-D up/down: 87%|Intraday: 75%/50% capture|GV intraday: 90%/75% capture|DA: 85% capture, ~8% imbalance|Ceiling: LP per quarter, 1.3 cycles/day"}
+  fPhys:"The battery",fPhysB:"Revenue per MW · 1h, 2h and 4h|Round-trip efficiency 90%, 90% usable energy|Bids in 100 kW steps|Full availability unless stated",
+  fPart:"Markets",fPartB:"mFRR capacity and activation|FCR-N and FCR-D|Intraday and day-ahead|Strategy chosen per bidding zone and month",
+  fSrc:"Data sources",fSrcB:"Market prices: Aether (Svenska kraftnät, Nord Pool)|Benchmark: Clean Horizon Storage Index|Outcomes: GreenVoltis operating sites",
+  fCalc:"References",fCalcB:"Conventional: aggregator restoring charge via a retailer|Ceiling: perfect foresight per quarter, 2 cycles/day|The ceiling is a yardstick, not a target|The model is calibrated against actual outcomes"}
 };
 
 
@@ -215,7 +225,7 @@ function genArea(){
 }
 function genSyn(){const m=genArea();return{SE1:m,SE2:m,SE3:m,SE4:m};}
 
-function tx(raw,dur,mw,lang,basis){
+function tx(raw,dur,mw,lang){
   const label=(()=>{try{const[y,m]=raw.year_month.split("-");return new Date(+y,+m-1).toLocaleString(lang==="en"?"en-GB":"sv-SE",{year:"numeric",month:"short"});}catch{return raw.year_month;}})();
   const r={label,ym:raw.year_month};
   SIDS.forEach(sid=>{r[sid]=Math.round((raw[`${sid}_${dur}h`]||0)*mw);});
@@ -236,12 +246,6 @@ function tx(raw,dur,mw,lang,basis){
   r.idExtra=Math.round((raw[`gv_id_extra_${dur}h`]||0)*mw);
   r.fcrnPot=Math.round((raw[`fcrn_potential_${dur}h`]||0)*mw);
   r.fcrnIn=raw.fcrn_in_model!==false;
-  // Aterstallningskostnaden for mFRR-aktiveringar. Clean Horizons index drar
-  // INTE av den (SoC management), sa en likvardig nivajamforelse kraver att
-  // vart netto raknas upp med den. Posten ar noll i manader dar energiblocket
-  // prissatts pa intradagsspreaden - da finns inget brutto att rakna upp till.
-  r.restoreCost=Math.round((raw[`opt_energy_cost_${dur}h`]||0)*mw);
-  if(basis==="gross")r.mfrr_opt=r.mfrr_opt+r.restoreCost;
   return r;
 }
 
@@ -312,7 +316,6 @@ export default function Dashboard(){
   const[bench,setBench]=useState(null);
   // Ljust lage ar standard - det ar lasarens vy och den bar tryckas och delas.
   const[tr,setTr]=useState(12),[isDark,setIsDark]=useState(false);
-  const[basis,setBasis]=useState("net");
   const[lang,setLang]=useState("sv");
   const[sysMw,setSysMw]=useState(1),[sysMwh,setSysMwh]=useState(2);
   const t=isDark?dk:lt;
@@ -342,7 +345,7 @@ export default function Dashboard(){
 
   const toggle=useCallback(id=>{setSel(p=>{const n=new Set(p);n.has(id)?(n.size>1&&n.delete(id)):n.add(id);return n;});},[]);
   const aD=useMemo(()=>rawData?(rawData[area]||rawData["SE3"]||Object.values(rawData)[0]||[]):null,[rawData,area]);
-  const allM=useMemo(()=>aD?aD.map(r=>tx(r,dur,mw,lang,basis)):[],[aD,dur,mw,lang,basis]);
+  const allM=useMemo(()=>aD?aD.map(r=>tx(r,dur,mw,lang)):[],[aD,dur,mw,lang]);
   const tArea=useMemo(()=>tmax?(tmax[area]||[]):[],[tmax,area]);
   const months=useMemo(()=>{
     const base=tr===0?allM:allM.slice(-tr);
@@ -372,8 +375,8 @@ export default function Dashboard(){
   const monthsA=useMemo(()=>months.map(m=>{const a=mAct[m.ym];if(!a)return m;
     const av=a.availability==null?1:a.availability;
     return{...m,actual:Math.round(a.total/(a.mw||1)*mw),
-           actualNorm:Math.round(a.total/av/(a.mw||1)*mw),actAvail:av,actNote:a.note||""};}),
-    [months,mAct,mw]);
+           actualNorm:Math.round(a.total/av/(a.mw||1)*mw),actAvail:av,actNote:a[`note_${lang}`]||a.note||""};}),
+    [months,mAct,mw,lang]);
   const hasAct=monthsA.some(m=>m.actual!=null);
 
   // Clean Horizon-index: visas oförändrat, skalas bara med MW
@@ -452,6 +455,12 @@ export default function Dashboard(){
   const yP={tick:{fill:t.cT,fontSize:10},tickFormatter:v=>`€${(v/1000).toFixed(0)}k`};
   const red=isDark?"#ef4444":"#dc2626",grn=isDark?"#34d399":"#059669",amb=isDark?"#fbbf24":"#d97706";
   const T_GREY=isDark?"#94a3b8":"#64748b";
+  // Clean Horizon ar huvudjamforelsen och ska synas ovanpa staplarna:
+  // mork heldragen linje. Taket ar en ljusare streckad referens.
+  const CH_C=isDark?"#cbd5e1":"#334155";
+  // Faktiskt utfall far egen form och farg - samma morka ton som indexet
+  // gjorde punkterna omojliga att skilja fran Clean Horizon-linjen.
+  const ACT_C=isDark?"#38bdf8":"#0369a1";
 
   return(
     <div style={{background:t.bg,minHeight:"100vh",fontFamily:"'Plus Jakarta Sans',sans-serif",color:t.tx,transition:"background 0.3s ease"}}>
@@ -487,14 +496,6 @@ export default function Dashboard(){
             color:dur===d?(isDark?"#000":"#fff"):t.mu,border:`1px solid ${dur===d?(isDark?"#38bdf8":"#0891b2"):t.bd}`,
             borderRadius:8,padding:"7px 20px",fontSize:14,cursor:"pointer",fontWeight:600,fontFamily:"'JetBrains Mono'"}}>{d}h</button>))}
           <div style={{width:1,height:18,background:t.bd,margin:"0 8px"}}/>
-          <span style={{fontSize:9,color:t.dm,textTransform:"uppercase",letterSpacing:"0.08em"}}>{L.basis}</span>
-          {[["net",L.basisNet],["gross",L.basisGross]].map(([k,lb])=>(
-            <button key={k} onClick={()=>setBasis(k)} title={L.basisHint} style={{
-              background:basis===k?(isDark?"#38bdf8":"#0891b2"):t.card,
-              color:basis===k?(isDark?"#000":"#fff"):t.mu,
-              border:`1px solid ${basis===k?(isDark?"#38bdf8":"#0891b2"):t.bd}`,
-              borderRadius:8,padding:"6px 14px",fontSize:11,cursor:"pointer",fontWeight:600}}>{lb}</button>))}
-          <div style={{width:1,height:18,background:t.bd,margin:"0 8px"}}/>
           <span style={{fontSize:9,color:t.dm,textTransform:"uppercase",letterSpacing:"0.08em"}}>{L.period}</span>
           {TR.map(r=><Pill key={r.k} active={tr===r.k} onClick={()=>setTr(r.k)} small t={t}>{r.l[lang]}</Pill>)}
           <div style={{flex:1}}/>{view!=="system"&&<span style={{fontSize:11,color:t.mu,fontFamily:"'JetBrains Mono'"}}>{mw} MW · {mw*dur} MWh · C/{dur}</span>}
@@ -505,12 +506,24 @@ export default function Dashboard(){
           <KPI label={`${L.ceiling} ${N} ${L.mo} (${dur}h)`} value={hasT?fmtE(ann.tmax):"—"} sub={L.foresight} color={isDark?"#94a3b8":"#64748b"} t={t}/>
           <KPI label={S.mfrr_opt.l[lang]} value={fmtE(ann.mfrr_opt)} sub={[hasT?`${(ann.mfrr_opt/ann.tmax*100).toFixed(0)}% ${L.ofCeil}`:null,
                  benchSum?`${(benchSum.gv/benchSum.idx*100).toFixed(0)}% ${L.vsIndex}`:null,
-                 dur===2?L.reqBess:null].filter(Boolean).join(" · ")} color={sc("mfrr_opt")} t={t}/>
+                 ].filter(Boolean).join(" · ")} color={sc("mfrr_opt")} t={t}/>
           {benchSum&&<KPI label={bench?.source?.[lang==="en"?"label_en":"label_sv"]||"Clean Horizon Index"}
-            value={fmtE(benchSum.idx)} sub={`${benchSum.n} ${L.monthsShort}`}
+            value={fmtE(benchSum.idx)} sub={`${benchSum.n} ${L.monthsShort} · GreenVoltis ${L.samePer} ${fmtE(benchSum.gv)}`}
             color={isDark?"#94a3b8":"#64748b"} t={t}/>}
         </div>
 
+        <div style={{marginBottom:12,padding:"11px 14px",background:t.card,
+          border:`1px solid ${t.bd}`,borderLeft:`3px solid ${sc("mfrr_opt")}`,borderRadius:8,
+          fontSize:11.5,color:t.mu,lineHeight:1.6,display:"flex",gap:10,alignItems:"flex-start"}}>
+          <span aria-hidden style={{flexShrink:0,width:17,height:17,borderRadius:"50%",
+            border:`1.5px solid ${sc("mfrr_opt")}`,color:sc("mfrr_opt"),fontSize:11,fontWeight:700,
+            display:"flex",alignItems:"center",justifyContent:"center",marginTop:1,
+            fontFamily:"Georgia,serif"}}>i</span>
+          <span><strong style={{color:t.tx}}>{L.calcTitle}.</strong> {L.calcBody}</span>
+        </div>
+        {dur===4&&(<div style={{marginBottom:12,padding:"10px 14px",background:amb+"12",
+          border:`1px solid ${amb}33`,borderRadius:8,fontSize:11,color:t.mu}}>
+          <strong style={{color:amb}}>4h</strong> — {L.dur4}</div>)}
         {valid&&(<div style={{marginBottom:16,padding:"10px 14px",background:t.cA,
           border:`1px solid ${grn}33`,borderRadius:8,fontSize:11,color:t.mu,
           display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
@@ -531,23 +544,26 @@ export default function Dashboard(){
         <div style={{marginTop:-6,marginBottom:16,fontSize:11,color:t.mu,lineHeight:1.6}}>
           {{comparison:L.hComparison,mfrr:L.hMfrr,system:L.hSystem,table:L.hTable}[view]}</div>
 
-        {view==="comparison"&&(<Card title={`${L.tComparison} — ${dur}h (${mw*dur} MWh)`} sub={`${L.eurMo} · ${tr?`${L.last} ${tr}`:L.allMonths.split(" ")[0]} ${L.months}`} t={t}>
+        {view==="comparison"&&(<Card title={`${L.tComparison} — ${dur}h (${mw*dur} MWh)`} sub={`${L.eurMo} · ${N} ${L.months}${months.length?` (${months[0].label} – ${months[months.length-1].label})`:""}`} t={t}>
           <ResponsiveContainer width="100%" height={400}><ComposedChart data={monthsB} margin={{top:18,right:12,bottom:5,left:0}}>
             <CartesianGrid strokeDasharray="3 3" stroke={t.cG}/><XAxis {...xP}/><YAxis {...yP}/>
             <Tooltip content={<TT theme={t}/>}/><Legend wrapperStyle={{fontSize:10,fontFamily:"'Plus Jakarta Sans'"}}/>
             {vers.map(v=>(<ReferenceLine key={v.from} x={v.at} stroke={t.mu} strokeDasharray="2 4"
               label={{value:v.label,position:"top",fill:t.mu,fontSize:9}}/>))}
             {SIDS.filter(s=>sel.has(s)).map(sid=>(<Bar key={sid} dataKey={sid} name={S[sid].l[lang]} fill={sc(sid)} opacity={0.6} radius={[2,2,0,0]}/>))}
-            {hasT&&<Line dataKey="tmax" name={L.ceiling} stroke={T_GREY} strokeWidth={2} strokeDasharray="6 3" dot={false}/>}
+            {hasT&&<Line dataKey="tmax" name={L.ceiling} stroke={T_GREY} strokeWidth={1.5} strokeOpacity={0.7} strokeDasharray="6 4" dot={false}/>}
             {hasBench&&<Line dataKey="bench" name={bench?.source?.[lang==="en"?"label_en":"label_sv"]||"Clean Horizon Index"}
-              stroke={isDark?"#64748b":"#94a3b8"} strokeWidth={1.5} strokeDasharray="2 3"
-              dot={{r:2}} connectNulls={false}/>}
-            {hasAct&&<Line dataKey="actual" name={L.actual} stroke={t.tx} strokeWidth={0}
-              dot={p=>{if(p.payload?.actual==null)return<g key={p.index}/>;
-                const full=(p.payload.actAvail??1)>=0.999;
-                return<circle key={p.index} cx={p.cx} cy={p.cy} r={5}
-                  fill={full?t.tx:"none"} stroke={full?t.bg:t.tx} strokeWidth={2}/>;}}
-              connectNulls={false} legendType="circle"/>}
+              stroke={CH_C} strokeWidth={2.25}
+              dot={{r:3.5,fill:CH_C,stroke:t.card,strokeWidth:1.5}} activeDot={{r:5}}
+              connectNulls={false}/>}
+            {hasAct&&<Line dataKey="actual" name={L.actual} stroke={ACT_C} strokeWidth={0}
+              activeDot={false}
+              dot={p=>{if(p.payload?.actual==null||p.cx==null)return<g key={p.index}/>;
+                const full=(p.payload.actAvail??1)>=0.999, r=7;
+                const d=`M${p.cx},${p.cy-r} L${p.cx+r},${p.cy} L${p.cx},${p.cy+r} L${p.cx-r},${p.cy} Z`;
+                return<path key={p.index} d={d} data-actual="1"
+                  fill={full?ACT_C:t.card} stroke={full?t.card:ACT_C} strokeWidth={full?1.5:2.25}/>;}}
+              connectNulls={false} legendType="diamond"/>}
           </ComposedChart></ResponsiveContainer>
           {vers.length>0&&(<div style={{marginTop:10,display:"flex",gap:14,flexWrap:"wrap",fontSize:10.5,color:t.mu}}>
             {vers.map(v=>(<span key={v.from}><strong style={{color:t.mu}}>{v.label}</strong> {v.at} — {v.note}</span>))}</div>)}
@@ -559,17 +575,6 @@ export default function Dashboard(){
               {" = "}<strong style={{color:t.mu}}>{(benchSum.gv/benchSum.idx*100).toFixed(0)}%</strong></>}
             <br/>{bench.methodology?.[lang==="en"?"note_en":"note_sv"]||L.benchNote}
           </div>)}
-          {/* Brutto mot netto ar den viktigaste metodikskillnaden mot indexet och
-              lag tidigare begravd i metodiknotisen. Indexet drar inte av kostnaden
-              for att aterstalla laddningsnivan; vara siffror gor det. For SE4
-              september 2026 var det 24 % av bruttot. */}
-          {hasBench&&bench?.methodology?.[lang==="en"?"basis_en":"basis_sv"]&&(
-            <div style={{marginTop:8,padding:"9px 12px",background:t.mu+"12",
-              border:`1px solid ${t.bd}`,borderRadius:8,fontSize:10.5,
-              color:t.mu,lineHeight:1.65}}>
-              <strong style={{color:t.tx}}>{lang==="en"?"Gross vs net":"Brutto mot netto"}</strong>
-              {" — "}{bench.methodology[lang==="en"?"basis_en":"basis_sv"]}
-            </div>)}
           {benchSum?.corr?.map(m=>(
             <div key={m.ym} style={{marginTop:8,padding:"9px 12px",background:amb+"12",
               border:`1px solid ${amb}33`,borderRadius:8,fontSize:10.5,color:t.mu,lineHeight:1.65}}>
@@ -662,12 +667,7 @@ export default function Dashboard(){
                                    :(lang==="en"?"If FCR-N prequalified":"FCR-N om prekval.")}
                         value={fp?`+${fmtE(fp)}`:"—"} color={fin?grn:amb} t={t}/></div>
                   <div style={{marginTop:8,fontSize:10.5,color:t.mu,lineHeight:1.6}}>
-                    {lang==="en"
-                      ? "FCR-D is bid in the direction mFRR leaves free. The third figure is the value of FCR-N, computed as the same optimiser with and without it."
-                      : "FCR-D bjuds i den riktning mFRR lämnar fri. Tredje siffran är FCR-N:s värde, beräknad som samma optimerare med och utan FCR-N."}
-                    {fin&&<><br/><em style={{color:amb}}>{lang==="en"
-                      ? "FCR-N is included in the figures. Against seven site-months the model then runs +3.1% above actuals rather than −1.7%, because the sites have not prequalified FCR-N and bid ~0 MW of it in practice."
-                      : "FCR-N ingår i siffrorna. Mot sju anläggningsmånader hamnar modellen då +3,1% över utfallet i stället för −1,7%, eftersom anläggningarna inte prekvalificerat FCR-N och i praktiken budar ~0 MW."}</em></>}
+                    {L.fcrExpl}
                     {top.length>0&&<><br/>{lang==="en"?"Largest months: ":"Störst bidrag: "}
                       {top.map(m=>`${m.label} +${fmtE(m.fcrGain)} (${m.fcrGainPct.toFixed(0)}%)`).join(" · ")}</>}
                     {mdl>0&&<><br/><em style={{color:amb}}>{lang==="en"
@@ -680,13 +680,10 @@ export default function Dashboard(){
                 if(!ie)return null;
                 return(<div style={{marginTop:8,fontSize:10.5,color:t.mu,lineHeight:1.6}}>
                   <strong style={{color:grn}}>{lang==="en"?"Extra intraday arbitrage":"Extra intradagsarbitrage"}: +{fmtE(ie)}</strong>
-                  {" "}({n}{L.mo}). {lang==="en"
-                    ? "A battery already committed to mFRR round the clock can still arbitrage the quarters it is not activated in. Scales with measured intraday spread, so it is largest in SE4 and smallest in SE1."
-                    : "Ett batteri som redan ligger på mFRR dygnet runt kan ändå arbitrera de kvartar det inte aktiveras i. Skalar med uppmätt intradagsspread, så posten är störst i SE4 och minst i SE1."}
+                  {" "}({n}{L.mo}). {L.extraExpl}
                   </div>);})()}
-              <IB color={grn} t={t}><strong style={{color:t.tx}}>{L.conv}:</strong> {CH[dur]}{L.convExpl1} {CB[dur]}{L.convExpl2}
-                <br/><br/><strong style={{color:t.tx}}>{S.mfrr_opt.l[lang]}:</strong> {OH[dur]}{L.gvExpl1} {OE[dur]} {L.gvExpl2} {CE[dur]}.{OB[dur]>0?` ${OB[dur]}${L.gvBf}`:""}
-                {dur===2&&<><br/><em style={{color:amb}}>{L.gvNote}</em></>}</IB></Card></div>);})()}
+              <IB color={grn} t={t}><strong style={{color:t.tx}}>{L.conv}:</strong> {L.convIB}
+                <br/><br/><strong style={{color:t.tx}}>{S.mfrr_opt.l[lang]}:</strong> {L.gvIB}</IB></Card></div>);})()}
 
         {/* Day-ahead och 1h/2h-vyerna har ingen flik langre - de listade andra
             strategier sida vid sida. Koden star kvar for internt bruk; lagg

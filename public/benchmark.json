@@ -10,14 +10,11 @@
     "methodology_url": "https://www.cleanhorizon.com/news/major-update-to-our-storage-index-methodology/"
   },
   "methodology": {
-    "markets_sv": "Day-ahead, intradag, FCR-N, FCR-D upp/ned, mFRR (kapacitet + energi)",
-    "markets_en": "Day-ahead, intraday, FCR-N, FCR-D up/down, mFRR (capacity + energy)",
-    "note_sv": "Clean Horizons index räknar på samma marknader som vår modell: day-ahead, intradag, FCR-N, FCR-D och mFRR. Indexet bygger på 85 % verkningsgrad, 1,5 cykler per dygn, full tillgänglighet och nästan full förhandskännedom om day-ahead-priser, och redovisas före kostnaden för att återställa laddningsnivån. Värdena visas oförändrade.",
-    "note_en": "The Clean Horizon index covers the same markets as our model: day-ahead, intraday, FCR-N, FCR-D and mFRR. It assumes 85% round-trip efficiency, 1.5 cycles per day, full availability and near-full foresight of day-ahead prices, and is reported before the cost of restoring state of charge. Values are shown unmodified.",
-    "may_note_sv": "Korrigerat värde. Clean Horizons publicerade majsiffror såg orimligt låga ut i samtliga uthålligheter, och hela majraden ersätts därför med deras annualiserade 170 kEUR/MW delat med 12 = 14 167 EUR i alla fyra elprisområden. Det innebär att maj saknar varaktighetsprofil: 1h, 2h och 4h visar samma tal, eftersom den annualiserade siffran är ett enda värde utan uppdelning. Jämförelsen för maj ska därför läsas som ungefärlig — den säger något om nivån, inte om hur uthållighet påverkar intäkten. Använd inte majsiffran som styrkebesked i kundmaterial.",
-    "may_note_en": "Corrected value. Clean Horizon's published May figures looked implausibly low across all durations, so the entire May row is replaced with their annualised 170 kEUR/MW divided by 12 = 14,167 EUR in all four bidding zones. This means May has no duration profile: 1h, 2h and 4h show the same figure, because the annualised number is a single value with no breakdown. The May comparison should therefore be read as approximate — it says something about the level, not about how duration affects revenue. Do not use the May figure as evidence of strength in customer material.",
+    "note_sv": "Indexet antar 85 % verkningsgrad, 1,5 cykler per dygn, full tillgänglighet och nästan full förhandskännedom om day-ahead-priser, och redovisas före kostnaden för att återställa laddningsnivån. Värdena visas oförändrade. Maj 2026 visas bara där den går att belägga mot Clean Horizons publicerade siffror (SE3, 2h).",
+    "note_en": "The index assumes 85% round-trip efficiency, 1.5 cycles per day, full availability and near-full foresight of day-ahead prices, and is reported before the cost of restoring state of charge. Values are shown unmodified. May 2026 is shown only where it can be verified against Clean Horizon's published figures (SE3, 2h).",
     "economics_sv": "Från januari 2026 bygger indexet på genomsnittsekonomi i stället för marginalekonomi: det använder faktiskt upphandlade volymer i kapacitets- och energimarknaderna samt installerad lagringskapacitet per land, i stället för en marginell 1 MW-enhet som antas kunna sälja obegränsat. Det gör indexet mer realistiskt än tidigare år och därmed en hårdare jämförelse.",
-    "economics_en": "From January 2026 the index is based on average rather than marginal economics: it uses actual procured volumes in the capacity and energy markets plus installed storage capacity per country, instead of a marginal 1 MW unit assumed to sell without limit. This makes the index more realistic than in earlier years, and therefore a harder comparison."
+    "economics_en": "From January 2026 the index is based on average rather than marginal economics: it uses actual procured volumes in the capacity and energy markets plus installed storage capacity per country, instead of a marginal 1 MW unit assumed to sell without limit. This makes the index more realistic than in earlier years, and therefore a harder comparison.",
+    "verification_sv": "Avstämt mot Clean Horizons publicerade årstakt för SE3 2h: april 146, maj 170, juni 164, september 142 k€/MW/år. Övriga månader och zoner kommer från Nord Pools dataportal."
   },
   "index": {
     "SE1": [
@@ -44,16 +41,6 @@
         "h1": 12153.68,
         "h2": 20231.54,
         "h4": 21516.28
-      },
-      {
-        "year_month": "2026-05",
-        "h1": 14166.67,
-        "h2": 14166.67,
-        "h4": 14166.67,
-        "corrected": true,
-        "flag": "corrected",
-        "note_sv": "Korrigerat värde. Clean Horizons publicerade majsiffror såg orimligt låga ut i samtliga uthålligheter, och hela majraden ersätts därför med deras annualiserade 170 kEUR/MW delat med 12 = 14 167 EUR i alla fyra elprisområden. Det innebär att maj saknar varaktighetsprofil: 1h, 2h och 4h visar samma tal, eftersom den annualiserade siffran är ett enda värde utan uppdelning. Jämförelsen för maj ska därför läsas som ungefärlig — den säger något om nivån, inte om hur uthållighet påverkar intäkten. Använd inte majsiffran som styrkebesked i kundmaterial.",
-        "note_en": "Corrected value. Clean Horizon's published May figures looked implausibly low across all durations, so the entire May row is replaced with their annualised 170 kEUR/MW divided by 12 = 14,167 EUR in all four bidding zones. This means May has no duration profile: 1h, 2h and 4h show the same figure, because the annualised number is a single value with no breakdown. The May comparison should therefore be read as approximate — it says something about the level, not about how duration affects revenue. Do not use the May figure as evidence of strength in customer material."
       },
       {
         "year_month": "2026-06",
@@ -104,16 +91,6 @@
         "h1": 10369.49,
         "h2": 16736.88,
         "h4": 17519.57
-      },
-      {
-        "year_month": "2026-05",
-        "h1": 14166.67,
-        "h2": 14166.67,
-        "h4": 14166.67,
-        "corrected": true,
-        "flag": "corrected",
-        "note_sv": "Korrigerat värde. Clean Horizons publicerade majsiffror såg orimligt låga ut i samtliga uthålligheter, och hela majraden ersätts därför med deras annualiserade 170 kEUR/MW delat med 12 = 14 167 EUR i alla fyra elprisområden. Det innebär att maj saknar varaktighetsprofil: 1h, 2h och 4h visar samma tal, eftersom den annualiserade siffran är ett enda värde utan uppdelning. Jämförelsen för maj ska därför läsas som ungefärlig — den säger något om nivån, inte om hur uthållighet påverkar intäkten. Använd inte majsiffran som styrkebesked i kundmaterial.",
-        "note_en": "Corrected value. Clean Horizon's published May figures looked implausibly low across all durations, so the entire May row is replaced with their annualised 170 kEUR/MW divided by 12 = 14,167 EUR in all four bidding zones. This means May has no duration profile: 1h, 2h and 4h show the same figure, because the annualised number is a single value with no breakdown. The May comparison should therefore be read as approximate — it says something about the level, not about how duration affects revenue. Do not use the May figure as evidence of strength in customer material."
       },
       {
         "year_month": "2026-06",
@@ -167,13 +144,10 @@
       },
       {
         "year_month": "2026-05",
-        "h1": 14166.67,
-        "h2": 14166.67,
-        "h4": 14166.67,
-        "corrected": true,
-        "note_sv": "Korrigerat värde. Clean Horizons publicerade majsiffror såg orimligt låga ut i samtliga uthålligheter, och hela majraden ersätts därför med deras annualiserade 170 kEUR/MW delat med 12 = 14 167 EUR i alla fyra elprisområden. Det innebär att maj saknar varaktighetsprofil: 1h, 2h och 4h visar samma tal, eftersom den annualiserade siffran är ett enda värde utan uppdelning. Jämförelsen för maj ska därför läsas som ungefärlig — den säger något om nivån, inte om hur uthållighet påverkar intäkten. Använd inte majsiffran som styrkebesked i kundmaterial.",
-        "note_en": "Corrected value. Clean Horizon's published May figures looked implausibly low across all durations, so the entire May row is replaced with their annualised 170 kEUR/MW divided by 12 = 14,167 EUR in all four bidding zones. This means May has no duration profile: 1h, 2h and 4h show the same figure, because the annualised number is a single value with no breakdown. The May comparison should therefore be read as approximate — it says something about the level, not about how duration affects revenue. Do not use the May figure as evidence of strength in customer material.",
-        "flag": "corrected"
+        "h1": null,
+        "h2": 14438.36,
+        "h4": null,
+        "source": "2h: Clean Horizons publicerade årstakt för SE3, 170 k€/MW/år × 31/365. Samma omräkning ger 145,9 / 164,3 / 141,9 mot publicerade 146 / 164 / 142 för april, juni och september. 1h och 4h utesluts: värdena går inte att belägga."
       },
       {
         "year_month": "2026-06",
@@ -198,6 +172,13 @@
         "h1": 7515.34,
         "h2": 11664.87,
         "h4": 16722.47
+      },
+      {
+        "year_month": "2026-10",
+        "h1": 9702,
+        "h2": null,
+        "h4": null,
+        "source": "1h: Nord Pools dataportal, samma dataset som övriga månader (identiskt jan–sep). 2h och övriga zoner läggs in när Clean Horizon publicerar oktober."
       }
     ],
     "SE4": [
@@ -224,16 +205,6 @@
         "h1": 9322.74,
         "h2": 14010.13,
         "h4": 17365.67
-      },
-      {
-        "year_month": "2026-05",
-        "h1": 14166.67,
-        "h2": 14166.67,
-        "h4": 14166.67,
-        "corrected": true,
-        "flag": "corrected",
-        "note_sv": "Korrigerat värde. Clean Horizons publicerade majsiffror såg orimligt låga ut i samtliga uthålligheter, och hela majraden ersätts därför med deras annualiserade 170 kEUR/MW delat med 12 = 14 167 EUR i alla fyra elprisområden. Det innebär att maj saknar varaktighetsprofil: 1h, 2h och 4h visar samma tal, eftersom den annualiserade siffran är ett enda värde utan uppdelning. Jämförelsen för maj ska därför läsas som ungefärlig — den säger något om nivån, inte om hur uthållighet påverkar intäkten. Använd inte majsiffran som styrkebesked i kundmaterial.",
-        "note_en": "Corrected value. Clean Horizon's published May figures looked implausibly low across all durations, so the entire May row is replaced with their annualised 170 kEUR/MW divided by 12 = 14,167 EUR in all four bidding zones. This means May has no duration profile: 1h, 2h and 4h show the same figure, because the annualised number is a single value with no breakdown. The May comparison should therefore be read as approximate — it says something about the level, not about how duration affects revenue. Do not use the May figure as evidence of strength in customer material."
       },
       {
         "year_month": "2026-06",

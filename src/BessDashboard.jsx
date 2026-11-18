@@ -1,5 +1,19 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { ComposedChart,Bar,Line,XAxis,YAxis,CartesianGrid,Tooltip,Legend,ResponsiveContainer,Cell,ReferenceLine } from "recharts";
+import { createClient } from "@supabase/supabase-js";
+import { computeBacktest, periodLabel, monthName, fmtPct, fmtHours, fmtNum } from "./backtest.mjs";
+
+// Inloggning for rapportutskicket i "Ditt batteri": samma Supabase-projekt och
+// samma magic link som BESS Simulation. Satts via Vercel-miljovariabler; utan
+// dem doljs utskicket helt i stallet for att visa en knapp som inte fungerar.
+function cleanSbUrl(u){const s=String(u||"").trim().replace(/\/+$/,"");
+  const m=s.match(/^https:\/\/[a-z0-9-]+\.supabase\.(co|in)/i);return m?m[0]:"";}
+const SB_URL=cleanSbUrl(process.env.REACT_APP_SB_URL);
+const SB_KEY=String(process.env.REACT_APP_SB_KEY||"").trim();
+const supabase=SB_URL&&SB_KEY.length>40?createClient(SB_URL,SB_KEY):null;
+// Lank till BESS Simulation for framatblickande kalkyl (valfri).
+const SIM_URL=String(process.env.REACT_APP_BESS_SIM_URL||"").trim();
+const EMAIL_RE=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const S={
   fcrn:{l:{sv:"FCR-N",en:"FCR-N"},c:["#38bdf8","#0284c7"],s:{sv:"FCR-N",en:"FCR-N"}},
@@ -73,7 +87,28 @@ const TXT={
   hComparison:"Vår intäkt månad för månad, med Clean Horizons index och marknadens tak som referens. Punkterna är faktiskt utfall från anläggning i drift.",
   hMfrr:"Hur intäkten fördelas mellan mFRR upp och ned, och vad en konventionell aggregator hade fått med samma priser.",
   hCeil:"Vad en perfekt optimerare hade tjänat med facit i hand. Visar hur stor del av marknadens värde vi faktiskt fångar.",
-  hSystem:"Räkna på valfri effekt och energi — ange MW och MWh så beräknas intäkten för det systemet.",
+  hBattery:"Ange ditt batteris effekt, energi och elprisområde och se vad det hade tjänat under 2026 med GreenVoltis optimering.",
+  tBattery:"Ditt batteri 2026",batTitle:"Så hade ditt batteri presterat 2026",
+  batSub:"Historiskt utfall med GreenVoltis optimering · EUR",batZone:"Elprisområde",batDur:"Uthållighet",
+  batEarned:p=>`hade ditt batteri tjänat ${p}`,batPerMw:"Per MW",batPerMwh:"Per MWh",
+  batVsCh:"Mot Clean Horizon",batChSub:n=>`${n} månader med index`,batCeil:"Av marknadstaket",batCeilSub:"perfekt framförhållning",
+  batBest:"Starkaste månad",batWorst:"Svagaste månad",batYou:"Ditt batteri",
+  batChNote:"Clean Horizon visas de månader där indexet finns för ditt batteris uthållighet.",
+  batLow:"Uthålligheten är kortare än 1 timme. Ange minst lika många MWh som MW.",
+  batHigh:"Uthålligheten är längre än 2,5 timmar. Där finns ännu inget faktiskt utfall att kalibrera mot.",
+  batNoData:"Marknadsdata för 2026 saknas.",
+  batHist:"Siffrorna visar vad batteriet hade tjänat under perioden — inte en prognos.",
+  batSim:"Vill du se framtida intäkter och återbetalningstid?",batSimLink:"Öppna BESS Simulation →",
+  repTitle:"Få rapporten som PDF",repSub:"Vi skickar en PDF med ditt batteris resultat till din e-post.",
+  repHow:"Ange din e-postadress så får du en inloggningslänk — inget lösenord behövs. Du kommer tillbaka hit med dina värden ifyllda.",
+  repEmail:"E-postadress",repEmailPh:"namn@foretag.se",repLink:"Skicka inloggningslänk",repLinking:"Skickar…",
+  repLinkSent:e=>`Kolla inkorgen hos ${e} och klicka på länken. Du kommer tillbaka hit med dina värden ifyllda.`,
+  repSigned:"Inloggad som",repSend:"Skicka rapporten till min e-post",repSending:"Skickar rapporten…",
+  repSent:e=>`Rapporten är skickad till ${e}.`,repOut:"Logga ut",repAgain:"Skicka igen",
+  repPrivacy:"Vi använder din e-post för att skicka rapporten och för att kunna kontakta dig om den.",
+  repBadEmail:"Ange en giltig e-postadress.",repLinkErr:"Det gick inte att skicka länken. Försök igen.",
+  repSendErr:"Det gick inte att skicka rapporten. Försök igen om en stund.",
+  repRate:"Du har skickat flera rapporter nyligen. Försök igen om en timme.",repAuth:"Inloggningen har gått ut. Logga in igen.",
   hTable:"Samma siffror som diagrammet, månad för månad i tabellform.",
   ceilGap:"Outnyttjat",ceilTake:"Fångat av taket",ceilWhat:"Takets sammansättning",
   ceilMissing:"theoretical_max_all.json saknas i public/",ceilRun:"Kör",ceilPut:"och lägg filen i dashboardens public-mapp.",
@@ -88,7 +123,7 @@ const TXT={
   sysModelled:"Över C/2,5 finns ingen anläggning att kalibrera mot — siffran är enbart modellerad.",
   sysMax:"Maximalt C/2,5 — längre uthållighet finns det ännu inget utfall att kalibrera mot. Ange mer effekt eller mindre energi.",
   sysNoGrid:"Kör om pipelinen för att få C-talsrutnätet i monthly_revenue_all.json.",
-  benchNote:"Indexet räknar på day-ahead, intradag, FCR-N, FCR-D och mFRR, med 85 % verkningsgrad och full användbar energi. Värdena visas oförändrade.",
+  benchNote:"Indexet antar 85 % verkningsgrad, 1,5 cykler per dygn och full användbar energi. Värdena visas oförändrade.",
   vsIndex:"mot index",benchPartial:"korrigerat värde ur CH:s annualiserade tal",
   altTitle:"Vad alternativen hade gett",
   altSub:"Samma priser, samma batteri, andra strategival · hela perioden",
@@ -131,7 +166,28 @@ const TXT={
   hComparison:"Our revenue month by month, with the Clean Horizon index and the market ceiling as references. Dots are realised outcomes from an operating site.",
   hMfrr:"How revenue splits between mFRR up and down, and what a conventional aggregator would have earned on the same prices.",
   hCeil:"What a perfect optimiser would have earned with hindsight. Shows how much of the market value we actually capture.",
-  hSystem:"Model any power and energy rating — enter MW and MWh to get the revenue for that system.",
+  hBattery:"Enter your battery's power, energy and bidding zone to see what it would have earned in 2026 with GreenVoltis optimisation.",
+  tBattery:"Your battery 2026",batTitle:"How your battery would have performed in 2026",
+  batSub:"Historical result with GreenVoltis optimisation · EUR",batZone:"Bidding zone",batDur:"Duration",
+  batEarned:p=>`your battery would have earned over ${p}`,batPerMw:"Per MW",batPerMwh:"Per MWh",
+  batVsCh:"Versus Clean Horizon",batChSub:n=>`${n} months with index`,batCeil:"Of market ceiling",batCeilSub:"perfect foresight",
+  batBest:"Strongest month",batWorst:"Weakest month",batYou:"Your battery",
+  batChNote:"Clean Horizon is shown for the months where the index exists for your battery's duration.",
+  batLow:"The duration is shorter than 1 hour. Enter at least as many MWh as MW.",
+  batHigh:"The duration is longer than 2.5 hours. There are no actual results yet to calibrate against.",
+  batNoData:"Market data for 2026 is missing.",
+  batHist:"The figures show what the battery would have earned over the period — not a forecast.",
+  batSim:"Want to see future revenue and payback?",batSimLink:"Open BESS Simulation →",
+  repTitle:"Get the report as a PDF",repSub:"We send a PDF with your battery's results to your email.",
+  repHow:"Enter your email and we send you a sign-in link — no password needed. You return here with your values filled in.",
+  repEmail:"Email address",repEmailPh:"name@company.com",repLink:"Send sign-in link",repLinking:"Sending…",
+  repLinkSent:e=>`Check the inbox for ${e} and click the link. You return here with your values filled in.`,
+  repSigned:"Signed in as",repSend:"Send the report to my email",repSending:"Sending the report…",
+  repSent:e=>`The report has been sent to ${e}.`,repOut:"Sign out",repAgain:"Send again",
+  repPrivacy:"We use your email to send the report and to be able to contact you about it.",
+  repBadEmail:"Enter a valid email address.",repLinkErr:"The link could not be sent. Please try again.",
+  repSendErr:"The report could not be sent. Please try again shortly.",
+  repRate:"You have sent several reports recently. Please try again in an hour.",repAuth:"Your sign-in has expired. Please sign in again.",
   hTable:"The same figures as the chart, month by month.",
   ceilGap:"Unused",ceilTake:"Captured",ceilWhat:"What the ceiling is made of",
   ceilMissing:"theoretical_max_all.json missing in public/",ceilRun:"Run",ceilPut:"and place the file in the dashboard public folder.",
@@ -146,7 +202,7 @@ const TXT={
   sysModelled:"Above C/2.5 there is no site to calibrate against — the figure is modelled only.",
   sysMax:"Maximum C/2.5 — there are no outcomes yet to calibrate longer durations against. Increase power or reduce energy.",
   sysNoGrid:"Re-run the pipeline to get the C-rate grid into monthly_revenue_all.json.",
-  benchNote:"The index covers day-ahead, intraday, FCR-N, FCR-D and mFRR, with 85% round-trip efficiency and full usable energy. Values are shown unmodified.",
+  benchNote:"The index assumes 85% round-trip efficiency, 1.5 cycles per day and full usable energy. Values are shown unmodified.",
   vsIndex:"vs index",benchPartial:"value corrected from CH annualised figure",
   altTitle:"What the alternatives would have given",
   altSub:"Same prices, same battery, different strategy · whole period",
@@ -315,7 +371,68 @@ export default function Dashboard(){
   // Ljust lage ar standard - det ar lasarens vy och den bar tryckas och delas.
   const[tr,setTr]=useState(12),[isDark,setIsDark]=useState(false);
   const[lang,setLang]=useState("sv");
-  const[sysMw,setSysMw]=useState(1),[sysMwh,setSysMwh]=useState(2);
+  const[batMw,setBatMw]=useState(1),[batMwh,setBatMwh]=useState(2);
+  const[user,setUser]=useState(null),[repOn,setRepOn]=useState(false);
+  const[repEmail,setRepEmail]=useState(""),[repState,setRepState]=useState("idle");
+  const[repErr,setRepErr]=useState(""),[repTo,setRepTo]=useState("");
+
+  // Indata ligger i adressen: lanken gar att dela, och den overlever magic
+  // linkens tur och retur via e-posten.
+  useEffect(()=>{try{
+    const q=new URLSearchParams(window.location.search);
+    if(q.get("vy")==="batteri")setView("battery");
+    const z=q.get("zon");if(["SE1","SE2","SE3","SE4"].includes(z))setArea(z);
+    const m=parseFloat(q.get("mw")),e=parseFloat(q.get("mwh"));
+    if(m>0&&m<=1000)setBatMw(m);if(e>0&&e<=2500)setBatMwh(e);
+    if(q.get("lang")==="en")setLang("en");
+  }catch(_){}},[]);
+  useEffect(()=>{try{
+    const q=new URLSearchParams(window.location.search);
+    if(view==="battery"){q.set("vy","batteri");q.set("zon",area);q.set("mw",String(batMw));q.set("mwh",String(batMwh));}
+    else["vy","zon","mw","mwh"].forEach(k=>q.delete(k));
+    const qs=q.toString();
+    window.history.replaceState(null,"",window.location.pathname+(qs?"?"+qs:"")+window.location.hash);
+  }catch(_){}},[view,area,batMw,batMwh]);
+
+  useEffect(()=>{
+    if(!supabase)return;
+    fetch("/api/send-report").then(r=>r.ok?r.json():{enabled:false})
+      .then(d=>setRepOn(Boolean(d&&d.enabled))).catch(()=>setRepOn(false));
+    supabase.auth.getSession().then(({data})=>{
+      setUser(data?.session?.user||null);
+      // Token i adressfaltet ska inte ligga kvar - en omladdning ska inte
+      // spela upp en forbrukad lank, och adressen ska ga att dela.
+      if(/access_token=|error_description=/.test(window.location.hash))
+        window.history.replaceState(null,"",window.location.pathname+window.location.search);
+    });
+    const{data:{subscription}}=supabase.auth.onAuthStateChange((_e,ses)=>setUser(ses?.user||null));
+    return()=>subscription.unsubscribe();
+  },[]);
+  useEffect(()=>{if(repState==="sent")setRepState("idle");},[area,batMw,batMwh]);
+
+  const sendLink=async()=>{
+    const e=repEmail.trim();
+    if(!EMAIL_RE.test(e)){setRepErr("bad");return;}
+    setRepErr("");setRepState("linking");
+    const back=window.location.origin+window.location.pathname+window.location.search;
+    const{error}=await supabase.auth.signInWithOtp({email:e,options:{emailRedirectTo:back}});
+    if(error){setRepState("idle");setRepErr("link");}else{setRepTo(e);setRepState("linkSent");}
+  };
+  const sendReport=async()=>{
+    setRepErr("");setRepState("sending");
+    try{
+      const{data}=await supabase.auth.getSession();
+      const tok=data?.session?.access_token;
+      const r=await fetch("/api/send-report",{method:"POST",
+        headers:{"Content-Type":"application/json",Authorization:`Bearer ${tok||""}`},
+        body:JSON.stringify({area,mw:batMw,mwh:batMwh,lang})});
+      if(r.ok){const j=await r.json().catch(()=>({}));setRepTo(j.email||user?.email||"");setRepState("sent");return;}
+      const j=await r.json().catch(()=>({}));
+      setRepState("idle");
+      if(j.error==="unauthorized"){await supabase.auth.signOut();setRepErr("auth");}
+      else setRepErr(j.error==="rate_limited"?"rate":"send");
+    }catch(_){setRepState("idle");setRepErr("send");}
+  };
   const t=isDark?dk:lt;
   const L=TXT[lang];LOC=lang==="en"?"en-GB":"sv-SE";
 
@@ -412,28 +529,9 @@ export default function Dashboard(){
 
   // Systemkalkyl: interpolera mellan närmaste C-tal i rutnätet, skala med MW.
   // Max C/2,5: det ar vad som finns att kalibrera mot (Skynet 2,5 MWh).
-  const CMAX=2.5, CVAL=2.5;
-  const sys=useMemo(()=>{
-    if(!aD||!aD.length)return null;
-    const keys=Object.keys(aD[0]).filter(k=>/^c[\d.]+$/.test(k))
-      .map(k=>({k,c:parseFloat(k.slice(1))})).sort((a,b)=>a.c-b.c);
-    if(!keys.length)return{noGrid:true};
-    const c=sysMwh/sysMw;
-    if(!(c>0))return null;
-    if(c>CMAX)return{tooBig:true,c};
-    const at=(row)=>{
-      let lo=keys[0],hi=keys[keys.length-1];
-      for(let i=0;i<keys.length-1;i++){if(c>=keys[i].c&&c<=keys[i+1].c){lo=keys[i];hi=keys[i+1];break;}}
-      if(c<=keys[0].c)return row[keys[0].k]||0;
-      if(c>=hi.c&&hi===keys[keys.length-1]&&c>keys[keys.length-1].c)return row[hi.k]||0;
-      const w=hi.c===lo.c?0:(c-lo.c)/(hi.c-lo.c);
-      return (row[lo.k]||0)*(1-w)+(row[hi.k]||0)*w;
-    };
-    const base=tr===0?aD:aD.slice(-tr);
-    const rows=base.map(r=>({ym:r.year_month,v:Math.round(at(r)*sysMw)}));
-    const tot=rows.reduce((a,r)=>a+r.v,0);
-    return{c,rows,tot,perMw:tot/sysMw,perMwh:tot/sysMwh,modelled:c>CVAL};
-  },[aD,sysMw,sysMwh,tr]);
+  const bt=useMemo(()=>rawData&&ds==="pipeline"
+    ?computeBacktest({revenue:{areas:rawData},benchmark:bench,ceiling:tmax?{areas:tmax}:null,area,mw:batMw,mwh:batMwh})
+    :null,[rawData,ds,bench,tmax,area,batMw,batMwh]);
   const manualMonths=useMemo(()=>monthsA.filter(m=>m.spreadSrc==="manual"),[monthsA]);
   const vers=useMemo(()=>{
     if(!acts||!acts.strategy_versions)return[];
@@ -474,9 +572,9 @@ export default function Dashboard(){
             <span style={{fontSize:9,color:t.dm,textTransform:"uppercase"}}>{L.zone}</span>
             {["SE1","SE2","SE3","SE4"].map(a=><Pill key={a} active={area===a} onClick={()=>setArea(a)} t={t}>{a}</Pill>)}
             <div style={{width:1,height:18,background:t.bd,margin:"0 4px"}}/>
-            <span style={{fontSize:9,color:t.dm,textTransform:"uppercase"}}>MW</span>
+            {view!=="battery"&&<><span style={{fontSize:9,color:t.dm,textTransform:"uppercase"}}>MW</span>
             <input type="number" min={0.5} max={200} step={0.5} value={mw} onChange={e=>setMw(Number(e.target.value)||1)}
-              style={{width:52,background:t.card,border:`1px solid ${t.bd}`,borderRadius:6,color:t.tx,padding:"4px 8px",fontSize:13,fontFamily:"'JetBrains Mono'",textAlign:"center"}}/>
+              style={{width:52,background:t.card,border:`1px solid ${t.bd}`,borderRadius:6,color:t.tx,padding:"4px 8px",fontSize:13,fontFamily:"'JetBrains Mono'",textAlign:"center"}}/></>}
             <button onClick={()=>setIsDark(!isDark)} style={{background:t.cA,border:`1px solid ${t.bd}`,borderRadius:20,padding:"4px 14px",cursor:"pointer",color:t.mu,fontSize:11}}>
               {isDark?L.light:L.dark}</button>
             <div style={{display:"flex",background:t.cA,border:`1px solid ${t.bd}`,borderRadius:20,overflow:"hidden"}}>
@@ -489,7 +587,7 @@ export default function Dashboard(){
         </div>
       </header>
       <div style={{padding:"16px 24px",maxWidth:1440,margin:"0 auto"}}>
-        <div style={{display:"flex",gap:8,marginBottom:16,alignItems:"center",flexWrap:"wrap"}}>
+        {view!=="battery"&&<div style={{display:"flex",gap:8,marginBottom:16,alignItems:"center",flexWrap:"wrap"}}>
           <span style={{fontSize:9,color:t.dm,textTransform:"uppercase",letterSpacing:"0.08em"}}>{L.dura}</span>
           {DURS.map(d=>(<button key={d} onClick={()=>setDur(d)} style={{background:dur===d?(isDark?"#38bdf8":"#0891b2"):t.card,
             color:dur===d?(isDark?"#000":"#fff"):t.mu,border:`1px solid ${dur===d?(isDark?"#38bdf8":"#0891b2"):t.bd}`,
@@ -497,11 +595,11 @@ export default function Dashboard(){
           <div style={{width:1,height:18,background:t.bd,margin:"0 8px"}}/>
           <span style={{fontSize:9,color:t.dm,textTransform:"uppercase",letterSpacing:"0.08em"}}>{L.period}</span>
           {TR.map(r=><Pill key={r.k} active={tr===r.k} onClick={()=>setTr(r.k)} small t={t}>{r.l[lang]}</Pill>)}
-          <div style={{flex:1}}/>{view!=="system"&&<span style={{fontSize:11,color:t.mu,fontFamily:"'JetBrains Mono'"}}>{mw} MW · {mw*dur} MWh · C/{dur}</span>}
-        </div>
+          <div style={{flex:1}}/><span style={{fontSize:11,color:t.mu,fontFamily:"'JetBrains Mono'"}}>{mw} MW · {mw*dur} MWh · C/{dur}</span>
+        </div>}
         {noMfrr&&(<div style={{marginBottom:16,padding:"12px 16px",background:amb+"12",border:`1px solid ${amb}30`,borderRadius:8,fontSize:11,color:amb}}>
           ⚠ <strong>{L.noData}</strong> {L.noDataRest}</div>)}
-        <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}}>
+        {view!=="battery"&&<div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}}>
           <KPI label={`${L.ceiling} ${N} ${L.mo} (${dur}h)`} value={hasT?fmtE(ann.tmax):"—"} sub={L.foresight} color={isDark?"#94a3b8":"#64748b"} t={t}/>
           <KPI label={S.mfrr_opt.l[lang]} value={fmtE(ann.mfrr_opt)} sub={[hasT?`${(ann.mfrr_opt/ann.tmax*100).toFixed(0)}% ${L.ofCeil}`:null,
                  benchSum?`${(benchSum.gv/benchSum.idx*100).toFixed(0)}% ${L.vsIndex}`:null,
@@ -509,7 +607,7 @@ export default function Dashboard(){
           {benchSum&&<KPI label={bench?.source?.[lang==="en"?"label_en":"label_sv"]||"Clean Horizon Index"}
             value={fmtE(benchSum.idx)} sub={`${benchSum.n} ${L.monthsShort} · GreenVoltis ${L.samePer} ${fmtE(benchSum.gv)}`}
             color={isDark?"#94a3b8":"#64748b"} t={t}/>}
-        </div>
+        </div>}
 
         <div style={{marginBottom:12,padding:"11px 14px",background:t.card,
           border:`1px solid ${t.bd}`,borderLeft:`3px solid ${sc("mfrr_opt")}`,borderRadius:8,
@@ -520,7 +618,7 @@ export default function Dashboard(){
             fontFamily:"Georgia,serif"}}>i</span>
           <span><strong style={{color:t.tx}}>{L.calcTitle}.</strong> {L.calcBody}</span>
         </div>
-        {valid&&(<div style={{marginBottom:16,padding:"10px 14px",background:t.cA,
+        {valid&&view!=="battery"&&(<div style={{marginBottom:16,padding:"10px 14px",background:t.cA,
           border:`1px solid ${grn}33`,borderRadius:8,fontSize:11,color:t.mu,
           display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
           <span style={{width:7,height:7,borderRadius:"50%",background:grn,flexShrink:0}}/>
@@ -534,11 +632,11 @@ export default function Dashboard(){
         <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap",
           background:t.bg==="#0a0f1a"?"#0f1626":t.cA,padding:6,borderRadius:10,
           border:`1px solid ${t.bd}`}}>
-          {[{k:"comparison",l:L.tComparison,h:L.hComparison},{k:"mfrr",l:L.tMfrr,h:L.hMfrr},
-            {k:"system",l:L.tSystem,h:L.hSystem},{k:"table",l:L.tTable,h:L.hTable}
+          {[{k:"comparison",l:L.tComparison,h:L.hComparison},{k:"battery",l:L.tBattery,h:L.hBattery},
+            {k:"mfrr",l:L.tMfrr,h:L.hMfrr},{k:"table",l:L.tTable,h:L.hTable}
           ].map(v=><Tab key={v.k} active={view===v.k} onClick={()=>setView(v.k)} label={v.l} hint={v.h} t={t}/>)}</div>
         <div style={{marginTop:-6,marginBottom:16,fontSize:11,color:t.mu,lineHeight:1.6}}>
-          {{comparison:L.hComparison,mfrr:L.hMfrr,system:L.hSystem,table:L.hTable}[view]}</div>
+          {{comparison:L.hComparison,mfrr:L.hMfrr,battery:L.hBattery,table:L.hTable}[view]}</div>
 
         {view==="comparison"&&(<Card title={`${L.tComparison} — ${dur}h (${mw*dur} MWh)`} sub={`${L.eurMo} · ${N} ${L.months}${months.length?` (${months[0].label} – ${months[months.length-1].label})`:""}`} t={t}>
           <ResponsiveContainer width="100%" height={400}><ComposedChart data={monthsB} margin={{top:18,right:12,bottom:5,left:0}}>
@@ -775,45 +873,96 @@ export default function Dashboard(){
             <IB color={T_GREY} t={t}>{L.ceilExpl}</IB>
           </Card>);})()}
 
-        {view==="system"&&(()=>{
-          const inp={background:t.cA,border:`1px solid ${t.bd}`,borderRadius:6,color:t.tx,
-            padding:"6px 10px",fontSize:15,width:90,fontFamily:"'JetBrains Mono'",textAlign:"right"};
-          const lbl={fontSize:10,color:t.mu,textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:4};
-          return(<Card title={L.sysTitle} sub={L.sysSub} t={t}>
-            <div style={{display:"flex",gap:20,alignItems:"flex-end",flexWrap:"wrap",marginBottom:16}}>
+        {view==="battery"&&(()=>{
+          const inp={background:t.cA,border:`1px solid ${t.bd}`,borderRadius:8,color:t.tx,
+            padding:"8px 10px",fontSize:16,width:96,fontFamily:"'JetBrains Mono'",textAlign:"right"};
+          const lbl={fontSize:10,color:t.mu,textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:6};
+          const c=batMwh/batMw;
+          const p=bt&&!bt.error?periodLabel(bt.first,bt.last,lang):"";
+          const cap=x=>x.charAt(0).toUpperCase()+x.slice(1);
+          const data=bt&&!bt.error?bt.months.map(m=>({label:cap(monthName(m.ym,lang,false).slice(0,3)),
+            rev:Math.round(m.rev),ch:m.ch!=null?Math.round(m.ch):null,ceil:m.ceil!=null?Math.round(m.ceil):null})):[];
+          const errTxt={bad:L.repBadEmail,link:L.repLinkErr,send:L.repSendErr,rate:L.repRate,auth:L.repAuth}[repErr];
+          const btn=(on)=>({background:on?sc("mfrr_opt"):t.cA,color:on?"#fff":t.mu,
+            border:`1px solid ${on?sc("mfrr_opt"):t.bd}`,borderRadius:8,padding:"9px 16px",fontSize:13,
+            fontWeight:600,cursor:on?"pointer":"default",fontFamily:"'Plus Jakarta Sans'"});
+          return(<div style={{display:"grid",gap:16}}>
+          <Card title={L.batTitle} sub={L.batSub} t={t}>
+            <div style={{display:"flex",gap:22,alignItems:"flex-end",flexWrap:"wrap",marginBottom:18}}>
+              <div><div style={lbl}>{L.batZone}</div>
+                <div style={{display:"flex",gap:6}}>{["SE1","SE2","SE3","SE4"].map(a=>
+                  <Pill key={a} active={area===a} onClick={()=>setArea(a)} t={t}>{a}</Pill>)}</div></div>
               <div><div style={lbl}>{L.effect}</div>
-                <input type="number" min={0.1} max={500} step={0.1} value={sysMw}
-                  onChange={e=>setSysMw(Math.max(0.1,Number(e.target.value)||0.1))} style={inp}/>
+                <input aria-label={L.effect} type="number" min={0.1} max={1000} step={0.1} value={batMw}
+                  onChange={e=>setBatMw(Math.max(0.1,Number(e.target.value)||0.1))} style={inp}/>
                 <span style={{color:t.mu,fontSize:12,marginLeft:6}}>MW</span></div>
               <div><div style={lbl}>{L.energy}</div>
-                <input type="number" min={0.1} max={2000} step={0.1} value={sysMwh}
-                  onChange={e=>setSysMwh(Math.max(0.1,Number(e.target.value)||0.1))} style={inp}/>
+                <input aria-label={L.energy} type="number" min={0.1} max={2500} step={0.1} value={batMwh}
+                  onChange={e=>setBatMwh(Math.max(0.1,Number(e.target.value)||0.1))} style={inp}/>
                 <span style={{color:t.mu,fontSize:12,marginLeft:6}}>MWh</span></div>
-              <div><div style={lbl}>{L.crate}</div>
-                <div style={{fontSize:20,fontWeight:700,fontFamily:"'JetBrains Mono'",
-                  color:sys&&sys.tooBig?red:(sys&&sys.modelled?amb:t.tx)}}>
-                  C/{(sysMwh/sysMw).toFixed(2)}</div></div>
+              <div><div style={lbl}>{L.batDur}</div>
+                <div style={{fontSize:20,fontWeight:700,fontFamily:"'JetBrains Mono'",padding:"5px 0",
+                  color:bt&&bt.error&&/^c/.test(bt.error)?red:t.tx}}>{fmtHours(c,lang)}</div></div>
             </div>
-            {!sys?<div style={{fontSize:12,color:t.mu}}>{L.loading}</div>
-             :sys.noGrid?<div style={{fontSize:12,color:amb}}>⚠ {L.sysNoGrid}</div>
-             :sys.tooBig?<div style={{fontSize:12,color:red}}>⚠ {L.sysMax}</div>
+            {!bt?<div style={{fontSize:12,color:t.mu}}>{ds==="pipeline"?L.loading:L.batNoData}</div>
+             :bt.error?<div style={{fontSize:12.5,color:red,padding:"10px 0"}}>⚠ {
+               {cLow:L.batLow,cHigh:L.batHigh}[bt.error]||L.batNoData}</div>
              :(<>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:14}}>
-                <SB label={`${L.sysTotal} ${N} ${L.mo}`} value={fmtE(sys.tot)} color={sc("mfrr_opt")} t={t}/>
-                <SB label={L.sysPerMw} value={fmtE(sys.perMw)} color={t.mu} t={t}/>
-                <SB label={L.sysPerMwh} value={fmtE(sys.perMwh)} color={t.mu} t={t}/>
+              <div style={{display:"flex",alignItems:"baseline",gap:12,flexWrap:"wrap",margin:"4px 0 16px"}}>
+                <span style={{fontSize:34,fontWeight:600,fontFamily:"'JetBrains Mono'",color:sc("mfrr_opt"),letterSpacing:"-0.02em"}}>{fmtE(bt.total)}</span>
+                <span style={{fontSize:14,color:t.mu}}>{L.batEarned(p)}</span>
               </div>
-              <ResponsiveContainer width="100%" height={300}>
-                <ComposedChart data={sys.rows.map((r,i)=>({label:months[i]?months[i].label:r.ym,v:r.v}))}
-                  margin={{top:8,right:12,bottom:5,left:0}}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={t.cG}/><XAxis {...xP}/><YAxis {...yP}/>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:8,marginBottom:16}}>
+                <KPI label={L.batPerMw} value={fmtE(bt.perMw)} sub={`${fmtE(bt.perMwh)} per MWh`} color={t.mu} t={t}/>
+                <KPI label={L.batVsCh} value={bt.ch?fmtPct(bt.ch.ratio-1,lang,true):"—"} sub={bt.ch?L.batChSub(bt.ch.n):null} color={CH_C} t={t}/>
+                <KPI label={L.batCeil} value={bt.ceil?fmtPct(bt.ceil.share,lang):"—"} sub={L.batCeilSub} color={T_GREY} t={t}/>
+                <KPI label={L.batBest} value={fmtE(bt.best.rev)} sub={cap(monthName(bt.best.ym,lang))} color={sc("mfrr_opt")} t={t}/>
+                <KPI label={L.batWorst} value={fmtE(bt.worst.rev)} sub={cap(monthName(bt.worst.ym,lang))} color={t.mu} t={t}/>
+              </div>
+              <ResponsiveContainer width="100%" height={320}>
+                <ComposedChart data={data} margin={{top:12,right:12,bottom:0,left:0}}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={t.cG}/>
+                  <XAxis dataKey="label" tick={{fill:t.cT,fontSize:10,fontFamily:"'Plus Jakarta Sans'"}}/>
+                  <YAxis {...yP}/>
                   <Tooltip content={<TT theme={t}/>}/>
-                  <Bar dataKey="v" name={S.mfrr_opt.l[lang]} fill={sc("mfrr_opt")} opacity={0.75} radius={[2,2,0,0]}/>
+                  <Legend wrapperStyle={{fontSize:11}}/>
+                  <Bar dataKey="rev" name={L.batYou} fill={sc("mfrr_opt")} opacity={0.8} radius={[3,3,0,0]}/>
+                  <Line dataKey="ceil" name={L.ceiling} stroke={T_GREY} strokeWidth={1.5} strokeOpacity={0.7} strokeDasharray="6 4" dot={false} connectNulls={false}/>
+                  <Line dataKey="ch" name={bench?.source?.[lang==="en"?"label_en":"label_sv"]||"Clean Horizon Index"}
+                    stroke={CH_C} strokeWidth={2.25} dot={{r:3.5,fill:CH_C,stroke:t.card,strokeWidth:1.5}} connectNulls={false}/>
                 </ComposedChart>
               </ResponsiveContainer>
-              {sys.modelled&&<IB color={amb} t={t}>{L.sysModelled}</IB>}
+              <div style={{fontSize:10.5,color:t.dm,marginTop:6}}>{L.batChNote}</div>
              </>)}
-          </Card>);})()}
+          </Card>
+
+          {supabase&&repOn&&bt&&!bt.error&&(<Card title={L.repTitle} sub={L.repSub} t={t}>
+            {user?(<div style={{display:"flex",gap:12,alignItems:"center",flexWrap:"wrap"}}>
+                <span style={{fontSize:12,color:t.mu}}>{L.repSigned} <strong style={{color:t.tx}}>{user.email}</strong></span>
+                {repState==="sent"
+                  ?<><span style={{fontSize:13,color:grn,fontWeight:600}}>✓ {L.repSent(repTo||user.email)}</span>
+                     <button onClick={sendReport} style={btn(false)}>{L.repAgain}</button></>
+                  :<button onClick={sendReport} disabled={repState==="sending"} style={btn(repState!=="sending")}>
+                     {repState==="sending"?L.repSending:L.repSend}</button>}
+                <button onClick={()=>supabase.auth.signOut()} style={{background:"none",border:"none",
+                  color:t.mu,fontSize:11,cursor:"pointer",textDecoration:"underline"}}>{L.repOut}</button>
+              </div>)
+            :repState==="linkSent"?(<div style={{fontSize:13,color:grn,lineHeight:1.6}}>✓ {L.repLinkSent(repTo)}</div>)
+            :(<><div style={{fontSize:12,color:t.mu,marginBottom:10,lineHeight:1.6}}>{L.repHow}</div>
+              <form onSubmit={e=>{e.preventDefault();sendLink();}} style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                <input type="email" aria-label={L.repEmail} placeholder={L.repEmailPh} value={repEmail}
+                  onChange={e=>setRepEmail(e.target.value)} autoComplete="email"
+                  style={{...inp,width:280,maxWidth:"100%",textAlign:"left",fontFamily:"'Plus Jakarta Sans'",fontSize:14}}/>
+                <button type="submit" disabled={repState==="linking"} style={btn(repState!=="linking")}>
+                  {repState==="linking"?L.repLinking:L.repLink}</button>
+              </form></>)}
+            {errTxt&&<div style={{marginTop:10,fontSize:12,color:red}}>⚠ {errTxt}</div>}
+            <div style={{marginTop:12,fontSize:10.5,color:t.dm}}>{L.repPrivacy}</div>
+          </Card>)}
+
+          <IB color={T_GREY} t={t}>{L.batHist}{SIM_URL&&<>{" "}{L.batSim}{" "}
+            <a href={SIM_URL} target="_blank" rel="noopener noreferrer" style={{color:sc("mfrr_opt"),fontWeight:600}}>{L.batSimLink}</a></>}</IB>
+          </div>);})()}
 
         {view==="table"&&(<Card title={`${L.tTable} — ${dur}h · ${mw} MW`} t={t}>
           <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:11,fontFamily:"'JetBrains Mono'"}}>

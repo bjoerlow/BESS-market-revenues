@@ -22,6 +22,7 @@ const C = {
   gv: rgb(0.020, 0.588, 0.412),     // #059669
   gvSoft: rgb(0.40, 0.76, 0.64),
   ch: rgb(0.20, 0.255, 0.333),      // #334155
+  chSoft: rgb(0.58, 0.64, 0.72),    // #94a3b8
   ceil: rgb(0.39, 0.45, 0.545),     // #64748b
 };
 
@@ -58,6 +59,19 @@ const TXT = {
       "Intäkterna redovisas före GreenVoltis optimeringsavgift. Elnätsavgifter, skatter och eventuella driftstopp ingår inte.",
     ],
     yearTxt: "Årstakten är periodens intäkt omräknad till 365 dagar, för jämförelse med årsangivelser. Intäkterna varierar över året, så den är inte en prognos.",
+    upH: "Där nästa intäktsökning finns",
+    upIntro: (gap) => `Skillnaden mellan marknadstaket och ditt batteris resultat, ${gap}, visar hur mycket mer marknaderna erbjöd under perioden. Vi utvecklar optimeringen hela tiden för att ta en allt större del av det värdet, och förbättringarna kommer alla batterier vi optimerar till del.`,
+    upMixH: "Marknadstaket för ditt batteri",
+    upMix: { energy: "Energihandel och aktivering", reserve: "Reservkapacitet (mFRR)", fcr: "FCR" },
+    upMost: "Här ligger den största delen av marknadens värde för ditt batteri.",
+    upLevers: [
+      ["energy", "Energihandel", "Bättre prognoser för day-ahead- och intradagspriser, och handel allt närmare leverans."],
+      ["reserve", "Reservkapacitet", "Budgivning timme för timme, så att varje timme går till den marknad som betalar bäst."],
+      ["act", "Aktivering och redispatch", "Budpriser på aktiveringsmarknaden som träffar de kvartar där regleringen behövs mest."],
+      ["fcr", "FCR", "Snabbare växling till FCR när kapacitetspriserna skiftar."],
+      ["abt", "Asset-backed trading", "Handel med batteriet som grund, som vi utvecklar och testkör nu. När den tas i drift lyfter den intäkterna ytterligare för de batterier vi optimerar."],
+    ],
+    upFoot: "Siffrorna i den här rapporten bygger på hur vi optimerar i dag och räknar inte med någon av förbättringarna ovan. Marknadstaket förutsätter perfekt kännedom om alla priser i förväg och är ett mått, inte ett mål.",
     contactH: "Kontakt",
     refH: "Jämförelserna",
     ref: [
@@ -91,6 +105,19 @@ const TXT = {
       "Revenue is shown before the GreenVoltis optimisation fee. Grid tariffs, taxes and any outages are not included.",
     ],
     yearTxt: "The annualised figure scales the period's revenue to 365 days, for comparison with annual figures. Revenue varies over the year, so it is not a forecast.",
+    upH: "Where further upside sits",
+    upIntro: (gap) => `The difference between the market ceiling and your battery's result, ${gap}, shows how much more the markets offered over the period. We develop the optimisation continuously to capture a growing share of that value, and every improvement benefits all the batteries we optimise.`,
+    upMixH: "The market ceiling for your battery",
+    upMix: { energy: "Energy trading and activation", reserve: "Reserve capacity (mFRR)", fcr: "FCR" },
+    upMost: "This is where most of the market value for your battery sits.",
+    upLevers: [
+      ["energy", "Energy trading", "Better day-ahead and intraday price forecasts, and trading ever closer to delivery."],
+      ["reserve", "Reserve capacity", "Hour-by-hour bidding, so every hour goes to the market that pays best."],
+      ["act", "Activation and redispatch", "Activation bids priced to hit the quarter-hours where regulation is needed most."],
+      ["fcr", "FCR", "Faster switching to FCR when capacity prices shift."],
+      ["abt", "Asset-backed trading", "Trading backed by the battery itself, which we are developing and test-running now. Once live, it lifts revenue further for the batteries we optimise."],
+    ],
+    upFoot: "The figures in this report reflect how we optimise today and include none of the improvements above. The market ceiling assumes perfect knowledge of all prices in advance; it is a measure, not a target.",
     contactH: "Contact",
     refH: "The comparisons",
     ref: [
@@ -211,7 +238,7 @@ export async function buildReportPdf(r, { lang = "sv", email = "", name = "", pr
   y -= 14;
   text(p1, L.chart, M, y, { font: bold, size: 12 });
   y -= 12;
-  const leg = [[L.legGv, "bar", C.gvSoft], [L.legCh, "line", C.ch], [L.legCeil, "dash", C.ceil]];
+  const leg = [[L.legGv, "bar", C.gvSoft], [L.legCh, "bar", C.chSoft], [L.legCeil, "dash", C.ceil]];
   let lx = M;
   for (const [lab, kind, col] of leg) {
     if (kind === "bar") p1.drawRectangle({ x: lx, y: y - 7, width: 9, height: 7, color: col });
@@ -230,10 +257,12 @@ export async function buildReportPdf(r, { lang = "sv", email = "", name = "", pr
     p1.drawLine({ start: { x: plotX, y: Y(v) }, end: { x: plotX + plotW, y: Y(v) }, thickness: 0.4, color: C.rule });
     text(p1, shortEur(v, lang), plotX - 6, Y(v) - 3, { size: 7, color: C.faint, align: "right" });
   }
-  const n = r.months.length, slot = plotW / n, bw = slot * 0.58;
+  // Ditt batteri och Clean Horizon som staplar bredvid varandra per månad.
+  const n = r.months.length, slot = plotW / n, bw = slot * 0.34, gap2 = slot * 0.04;
   const X = (i) => plotX + slot * i + slot / 2;
   r.months.forEach((m, i) => {
-    p1.drawRectangle({ x: X(i) - bw / 2, y: chBot, width: bw, height: Math.max(0.5, Y(m.rev) - chBot), color: C.gvSoft });
+    p1.drawRectangle({ x: X(i) - bw - gap2 / 2, y: chBot, width: bw, height: Math.max(0.5, Y(m.rev) - chBot), color: C.gvSoft });
+    if (m.ch != null) p1.drawRectangle({ x: X(i) + gap2 / 2, y: chBot, width: bw, height: Math.max(0.5, Y(m.ch) - chBot), color: C.chSoft });
     text(p1, monthName(m.ym, lang, false).slice(0, 3), X(i), chBot - 11, { size: 7, color: C.mute, align: "center" });
   });
   const series = (key, col, dashed) => {
@@ -245,7 +274,6 @@ export async function buildReportPdf(r, { lang = "sv", email = "", name = "", pr
     if (!dashed) r.months.forEach((m, i) => { if (m[key] != null) p1.drawCircle({ x: X(i), y: Y(m[key]), size: 2.4, color: col }); });
   };
   series("ceil", C.ceil, true);
-  series("ch", C.ch, false);
   p1.drawLine({ start: { x: plotX, y: chBot }, end: { x: plotX + plotW, y: chBot }, thickness: 0.6, color: C.faint });
 
   // ── Sida 2 ────────────────────────────────────────────────────────────────
@@ -289,17 +317,60 @@ export async function buildReportPdf(r, { lang = "sv", email = "", name = "", pr
   y -= 16;
   for (const s of L.ref) y = para(p2, s, M, y, CW, { size: 9.5 }) - 6;
 
-  // Kontakt: fast ruta ovanför sidfoten, eller direkt efter texten om den
-  // skulle nå ned dit.
+  // ── Sida 3: utvecklingen framåt ───────────────────────────────────────────
+  // Visar marknadstakets sammansättning (marknadens värde), aldrig fördelningen
+  // av batteriets egen intäkt per marknad.
+  const p3 = doc.addPage(A4); pages.push(p3); header(p3);
+  y = H - M - 40;
+  text(p3, L.upH, M, y, { font: bold, size: 16 });
+  y -= 22;
+  if (r.ceil) y = para(p3, L.upIntro(fmtEur(r.ceil.gap, lang)), M, y, CW, { size: 10 }) - 10;
+
+  const mix = r.ceil && r.ceil.mix;
+  let mostKey = null;
+  if (mix) {
+    mostKey = ["energy", "reserve", "fcr"].sort((a, b) => mix[b] - mix[a])[0];
+    text(p3, L.upMixH.toUpperCase(), M, y, { size: 7.5, color: C.mute });
+    y -= 12;
+    const cols = { energy: C.gv, reserve: C.ch, fcr: C.chSoft };
+    let bx = M;
+    const bh = 14;
+    for (const k of ["energy", "reserve", "fcr"]) {
+      const w = CW * mix[k];
+      p3.drawRectangle({ x: bx, y: y - bh, width: Math.max(0, w - 1.5), height: bh, color: cols[k] });
+      bx += w;
+    }
+    y -= bh + 12;
+    let lx2 = M;
+    for (const k of ["energy", "reserve", "fcr"]) {
+      p3.drawRectangle({ x: lx2, y: y - 7, width: 8, height: 8, color: cols[k] });
+      const lab = `${L.upMix[k]} ${fmtPct(mix[k], lang)}`;
+      text(p3, lab, lx2 + 12, y - 7, { size: 8.5, color: C.ink });
+      lx2 += 12 + reg.widthOfTextAtSize(safe(lab), 8.5) + 20;
+    }
+    y -= 26;
+  }
+
+  for (const [key, head, body] of L.upLevers) {
+    const isMost = key === mostKey;
+    p3.drawRectangle({ x: M, y: y - 3, width: 2.5, height: 12, color: key === "abt" ? C.gv : C.rule });
+    text(p3, head, M + 12, y, { font: bold, size: 10.5 });
+    y -= 14;
+    y = para(p3, isMost ? `${body} ${L.upMost}` : body, M + 12, y, CW - 12, { size: 9.5, color: C.ink }) - 10;
+  }
+  y -= 4;
+  y = para(p3, L.upFoot, M, y, CW, { size: 8.5, color: C.faint });
+
+  // Kontakt: fast ruta ovanför sidfoten.
   const boxH = 64;
-  const boxTop = Math.min(y - 14, M + 20 + boxH);
-  p2.drawRectangle({ x: M, y: boxTop - boxH, width: CW, height: boxH, color: C.panel });
-  p2.drawRectangle({ x: M, y: boxTop - boxH, width: 2.5, height: boxH, color: C.gv });
-  text(p2, L.contactH.toUpperCase(), M + 14, boxTop - 16, { size: 7.5, color: C.mute });
-  text(p2, CONTACT.name, M + 14, boxTop - 32, { font: bold, size: 11 });
-  text(p2, CONTACT.title + " · GreenVoltis AB", M + 14, boxTop - 46, { size: 9, color: C.mute });
-  text(p2, CONTACT.email, W - M - 14, boxTop - 32, { size: 9.5, color: C.gv, align: "right" });
-  text(p2, CONTACT.phone, W - M - 14, boxTop - 46, { size: 9.5, color: C.ink, align: "right" });
+  const boxTop = Math.min(y - 18, M + 20 + boxH);
+  p3.drawRectangle({ x: M, y: boxTop - boxH, width: CW, height: boxH, color: C.panel });
+  p3.drawRectangle({ x: M, y: boxTop - boxH, width: 2.5, height: boxH, color: C.gv });
+  text(p3, L.contactH.toUpperCase(), M + 14, boxTop - 16, { size: 7.5, color: C.mute });
+  text(p3, CONTACT.name, M + 14, boxTop - 32, { font: bold, size: 11 });
+  text(p3, CONTACT.title + " · GreenVoltis AB", M + 14, boxTop - 46, { size: 9, color: C.mute });
+  text(p3, CONTACT.email, W - M - 14, boxTop - 32, { size: 9.5, color: C.gv, align: "right" });
+  text(p3, CONTACT.phone, W - M - 14, boxTop - 46, { size: 9.5, color: C.ink, align: "right" });
 
   pages.forEach((pg, i) => {
     pg.drawLine({ start: { x: M, y: M - 8 }, end: { x: W - M, y: M - 8 }, thickness: 0.6, color: C.rule });

@@ -104,6 +104,17 @@ const TXT={
   batHist:"Siffrorna visar vad batteriet hade tjänat under perioden — inte en prognos.",
   batSim:"Vill du se framtida intäkter och återbetalningstid?",batSimLink:"Öppna BESS Simulation →",
   batYear:"Per MW och år",batYearSub:"i årstakt, inte en prognos",
+  upH:"Där nästa intäktsökning finns",
+  upIntro:g=>`Marknaderna erbjöd ${g} mer än ditt batteris resultat under perioden. Vi utvecklar optimeringen hela tiden för att ta en allt större del av det, och förbättringarna kommer alla batterier vi optimerar till del.`,
+  upMixH:"Marknadstaket för ditt batteri",
+  upMix:{energy:"Energihandel och aktivering",reserve:"Reservkapacitet (mFRR)",fcr:"FCR"},
+  upMost:"Här ligger den största delen av marknadens värde för ditt batteri.",upNew:"UNDER UTVECKLING",
+  upLevers:[["energy","Energihandel","Bättre prognoser för day-ahead- och intradagspriser, och handel allt närmare leverans."],
+    ["reserve","Reservkapacitet","Budgivning timme för timme, så att varje timme går till den marknad som betalar bäst."],
+    ["act","Aktivering och redispatch","Budpriser på aktiveringsmarknaden som träffar de kvartar där regleringen behövs mest."],
+    ["fcr","FCR","Snabbare växling till FCR när kapacitetspriserna skiftar."],
+    ["abt","Asset-backed trading","Handel med batteriet som grund, som vi utvecklar och testkör nu. När den tas i drift lyfter den intäkterna ytterligare för de batterier vi optimerar."]],
+  upFoot:"Siffrorna ovan bygger på hur vi optimerar i dag och räknar inte med någon av förbättringarna. Marknadstaket förutsätter perfekt kännedom om alla priser i förväg och är ett mått, inte ett mål.",
   accTitle:"Spara och ladda ner",accSubOut:"Logga in för att spara dina projekt och ladda ner rapporten som PDF.",
   accSubIn:"Namnge och spara projektet, och ladda ner rapporten som PDF.",
   pfTitle:"Dina uppgifter",pfHow:e=>`Inloggad som ${e}. Fyll i namn och telefonnummer så kan vi följa upp din rapport.`,
@@ -195,6 +206,17 @@ const TXT={
   batHist:"The figures show what the battery would have earned over the period — not a forecast.",
   batSim:"Want to see future revenue and payback?",batSimLink:"Open BESS Simulation →",
   batYear:"Per MW per year",batYearSub:"annualised, not a forecast",
+  upH:"Where further upside sits",
+  upIntro:g=>`The markets offered ${g} more than your battery's result over the period. We develop the optimisation continuously to capture a growing share of it, and every improvement benefits all the batteries we optimise.`,
+  upMixH:"The market ceiling for your battery",
+  upMix:{energy:"Energy trading and activation",reserve:"Reserve capacity (mFRR)",fcr:"FCR"},
+  upMost:"This is where most of the market value for your battery sits.",upNew:"IN DEVELOPMENT",
+  upLevers:[["energy","Energy trading","Better day-ahead and intraday price forecasts, and trading ever closer to delivery."],
+    ["reserve","Reserve capacity","Hour-by-hour bidding, so every hour goes to the market that pays best."],
+    ["act","Activation and redispatch","Activation bids priced to hit the quarter-hours where regulation is needed most."],
+    ["fcr","FCR","Faster switching to FCR when capacity prices shift."],
+    ["abt","Asset-backed trading","Trading backed by the battery itself, which we are developing and test-running now. Once live, it lifts revenue further for the batteries we optimise."]],
+  upFoot:"The figures above reflect how we optimise today and include none of these improvements. The market ceiling assumes perfect knowledge of all prices in advance; it is a measure, not a target.",
   accTitle:"Save and download",accSubOut:"Sign in to save your projects and download the report as a PDF.",
   accSubIn:"Name and save the project, and download the report as a PDF.",
   pfTitle:"Your details",pfHow:e=>`Signed in as ${e}. Add your name and phone number so we can follow up on your report.`,
@@ -655,6 +677,8 @@ export default function Dashboard(){
   // Clean Horizon ar huvudjamforelsen och ska synas ovanpa staplarna:
   // mork heldragen linje. Taket ar en ljusare streckad referens.
   const CH_C=isDark?"#cbd5e1":"#334155";
+  // Clean Horizon visas som stapel bredvid var egen, i en dampad skiffer.
+  const CH_BAR=isDark?"#64748b":"#94a3b8";
   // Faktiskt utfall far egen form och farg - samma morka ton som indexet
   // gjorde punkterna omojliga att skilja fran Clean Horizon-linjen.
   const ACT_C=isDark?"#38bdf8":"#0369a1";
@@ -746,10 +770,8 @@ export default function Dashboard(){
               label={{value:v.label,position:"top",fill:t.mu,fontSize:9}}/>))}
             {SIDS.filter(s=>sel.has(s)).map(sid=>(<Bar key={sid} dataKey={sid} name={S[sid].l[lang]} fill={sc(sid)} opacity={0.6} radius={[2,2,0,0]}/>))}
             {hasT&&<Line dataKey="tmax" name={L.ceiling} stroke={T_GREY} strokeWidth={1.5} strokeOpacity={0.7} strokeDasharray="6 4" dot={false}/>}
-            {hasBench&&<Line dataKey="bench" name={bench?.source?.[lang==="en"?"label_en":"label_sv"]||"Clean Horizon Index"}
-              stroke={CH_C} strokeWidth={2.25}
-              dot={{r:3.5,fill:CH_C,stroke:t.card,strokeWidth:1.5}} activeDot={{r:5}}
-              connectNulls={false}/>}
+            {hasBench&&<Bar dataKey="bench" name={bench?.source?.[lang==="en"?"label_en":"label_sv"]||"Clean Horizon Index"}
+              fill={CH_BAR} radius={[2,2,0,0]}/>}
             {hasAct&&<Line dataKey="actual" name={L.actual} stroke={ACT_C} strokeWidth={0}
               activeDot={false}
               dot={p=>{if(p.payload?.actual==null||p.cx==null)return<g key={p.index}/>;
@@ -1029,13 +1051,36 @@ export default function Dashboard(){
                   <Legend wrapperStyle={{fontSize:11}}/>
                   <Bar dataKey="rev" name={L.batYou} fill={sc("mfrr_opt")} opacity={0.8} radius={[3,3,0,0]}/>
                   <Line dataKey="ceil" name={L.ceiling} stroke={T_GREY} strokeWidth={1.5} strokeOpacity={0.7} strokeDasharray="6 4" dot={false} connectNulls={false}/>
-                  <Line dataKey="ch" name={bench?.source?.[lang==="en"?"label_en":"label_sv"]||"Clean Horizon Index"}
-                    stroke={CH_C} strokeWidth={2.25} dot={{r:3.5,fill:CH_C,stroke:t.card,strokeWidth:1.5}} connectNulls={false}/>
+                  <Bar dataKey="ch" name={bench?.source?.[lang==="en"?"label_en":"label_sv"]||"Clean Horizon Index"}
+                    fill={CH_BAR} radius={[3,3,0,0]}/>
                 </ComposedChart>
               </ResponsiveContainer>
               <div style={{fontSize:10.5,color:t.dm,marginTop:6}}>{L.batChNote}</div>
              </>)}
           </Card>
+
+          {bt&&!bt.error&&bt.ceil&&bt.ceil.mix&&(()=>{const mx=bt.ceil.mix;
+            const order=["energy","reserve","fcr"];const most=[...order].sort((x,y)=>mx[y]-mx[x])[0];
+            const col={energy:sc("mfrr_opt"),reserve:CH_C,fcr:CH_BAR};
+            return(<Card title={L.upH} sub={L.upIntro(fmtE(bt.ceil.gap))} t={t}>
+              <div style={{...lbl,marginBottom:6}}>{L.upMixH}</div>
+              <div style={{display:"flex",height:14,borderRadius:4,overflow:"hidden",marginBottom:8}}>
+                {order.map(k=><div key={k} title={L.upMix[k]} style={{width:`${mx[k]*100}%`,background:col[k]}}/>)}</div>
+              <div style={{display:"flex",gap:16,flexWrap:"wrap",fontSize:11.5,color:t.mu,marginBottom:16}}>
+                {order.map(k=><span key={k} style={{display:"inline-flex",alignItems:"center",gap:6}}>
+                  <span style={{width:9,height:9,borderRadius:2,background:col[k],display:"inline-block"}}/>
+                  {L.upMix[k]} <strong style={{color:t.tx}}>{fmtPct(mx[k],lang)}</strong></span>)}</div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:12}}>
+                {L.upLevers.map(([k,h,b])=>(<div key={k} style={{borderLeft:`3px solid ${k==="abt"?sc("mfrr_opt"):t.bd}`,
+                  padding:"4px 0 4px 12px"}}>
+                  <div style={{fontSize:13,fontWeight:700,color:t.tx,marginBottom:3}}>{h}
+                    {k==="abt"&&<span style={{marginLeft:8,fontSize:9.5,fontWeight:700,color:sc("mfrr_opt"),
+                      letterSpacing:"0.05em"}}>{L.upNew}</span>}</div>
+                  <div style={{fontSize:12,color:t.mu,lineHeight:1.55}}>{b}{k===most?` ${L.upMost}`:""}</div>
+                </div>))}
+              </div>
+              <div style={{marginTop:14,fontSize:10.5,color:t.dm,lineHeight:1.55}}>{L.upFoot}</div>
+            </Card>);})()}
 
           {supabase&&repOn&&(<Card title={L.accTitle} sub={user?L.accSubIn:L.accSubOut} t={t}>
             {!user?(repState==="linkSent"

@@ -102,11 +102,19 @@ export function computeBacktest({ revenue, benchmark, ceiling, area, mw, mwh, mo
     const b = bIdx[r.year_month], k = kIdx[r.year_month];
     const chPer = b ? interpHours({ 1: b.h1, 2: b.h2, 4: b.h4 }, c) : null;
     const ceilPer = k ? interpHours({ 1: k.tmax_1h, 2: k.tmax_2h, 4: k.tmax_4h }, c) : null;
+    // Takets sammansattning (marknadens varde, inte var intakt).
+    const part = (f) => (k ? interpHours({ 1: k[`${f}_1h`], 2: k[`${f}_2h`], 4: k[`${f}_4h`] }, c) : null);
+    const mix = k ? {
+      energy: part("tmax_energy"),
+      reserve: (part("tmax_cm_up") ?? 0) + (part("tmax_cm_down") ?? 0),
+      fcr: (part("tmax_fcrn") ?? 0) + (part("tmax_fcrd") ?? 0),
+    } : null;
     months.push({
       ym: r.year_month,
       rev: per * mw,
       ch: chPer != null && chPer > 0 ? chPer * mw : null,
       ceil: ceilPer != null && ceilPer > 0 ? ceilPer * mw : null,
+      mix: mix && mix.energy != null ? { energy: mix.energy * mw, reserve: mix.reserve * mw, fcr: mix.fcr * mw } : null,
     });
   }
 
@@ -118,6 +126,13 @@ export function computeBacktest({ revenue, benchmark, ceiling, area, mw, mwh, mo
   const ceilGv = withCeil.reduce((a, m) => a + m.rev, 0);
   const ceilSum = withCeil.reduce((a, m) => a + m.ceil, 0);
   const sorted = [...months].sort((a, b) => b.rev - a.rev);
+  // Marknadstakets sammansattning over manaderna med tak, i andelar.
+  const withMix = withCeil.filter((m) => m.mix);
+  const mixSum = withMix.reduce((a, m) => ({ energy: a.energy + m.mix.energy,
+    reserve: a.reserve + m.mix.reserve, fcr: a.fcr + m.mix.fcr }), { energy: 0, reserve: 0, fcr: 0 });
+  const mixTot = mixSum.energy + mixSum.reserve + mixSum.fcr;
+  const ceilMix = mixTot > 0 ? { energy: mixSum.energy / mixTot, reserve: mixSum.reserve / mixTot,
+    fcr: mixSum.fcr / mixTot } : null;
 
   // Arstakt: perioden skalad till 365 dagar. En normering for att kunna
   // jamfora med arsangivelser (som Clean Horizons), inte en prognos.
@@ -135,7 +150,8 @@ export function computeBacktest({ revenue, benchmark, ceiling, area, mw, mwh, mo
     perMw: total / mw,
     perMwh: total / mwh,
     ch: withCh.length ? { n: withCh.length, gv: chGv, idx: chIdx, ratio: chGv / chIdx } : null,
-    ceil: withCeil.length ? { n: withCeil.length, gv: ceilGv, sum: ceilSum, share: ceilGv / ceilSum } : null,
+    ceil: withCeil.length ? { n: withCeil.length, gv: ceilGv, sum: ceilSum, share: ceilGv / ceilSum,
+      gap: Math.max(0, ceilSum - ceilGv), mix: ceilMix } : null,
     best: sorted[0],
     worst: sorted[sorted.length - 1],
   };

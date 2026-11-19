@@ -25,6 +25,14 @@ const C = {
   ceil: rgb(0.39, 0.45, 0.545),     // #64748b
 };
 
+// Kontaktperson i rapporten.
+const CONTACT = {
+  name: "Patrik Björklund",
+  title: "Head of Business Development",
+  email: "patrik.bjorklund@greenvoltis.com",
+  phone: "+46(0)791 023 675",
+};
+
 const TXT = {
   sv: {
     brand: "GreenVoltis", product: "Revenue Intelligence",
@@ -32,6 +40,9 @@ const TXT = {
     prepared: (d, e) => `Framtagen ${d} för ${e}`,
     k1: (p) => `Intäkt ${p}`, k2: "Per MW", k3: "Mot Clean Horizon", k4: "Av marknadstaket",
     k3sub: (n) => `${n} månader med index`, k4sub: "perfekt framförhållning",
+    k2sub: (v) => `${v}/MW/år (årstakt)`,
+    mode: { standard: "Standardprofil", intensive: "Intensiv profil" },
+    cyc: (c) => `${c} cykler/dygn`,
     summary: "Sammanfattning",
     b1: (p, t, pm) => `Under ${p} hade batteriet tjänat ${t}, eller ${pm} per MW.`,
     b2: (b, bv, w, wv) => `Starkaste månaden var ${b} (${bv}), svagaste ${w} (${wv}).`,
@@ -48,6 +59,12 @@ const TXT = {
       "Siffrorna visar vad batteriet hade tjänat under perioden med GreenVoltis optimering. De är inte en prognos för framtida intäkter.",
       "Intäkterna redovisas före GreenVoltis optimeringsavgift. Elnätsavgifter, skatter och eventuella driftstopp ingår inte.",
     ],
+    modeTxt: {
+      standard: (c) => `Driftprofil: Standard. GreenVoltis ordinarie optimering, avvägd mot batteriets livslängd och garanti, i snitt ${c} cykler per dygn.`,
+      intensive: (c) => `Driftprofil: Intensiv. Mer intradagshandel, ${c} cykler per dygn. Ger högre intäkt men snabbare degradering och kan gå utöver vad batteriets garanti tillåter.`,
+    },
+    yearTxt: "Årstakten är periodens intäkt omräknad till 365 dagar, för jämförelse med årsangivelser. Intäkterna varierar över året, så den är inte en prognos.",
+    contactH: "Kontakt",
     refH: "Jämförelserna",
     ref: [
       "Clean Horizon Storage Index © Clean Horizon, levererat av Nord Pool. Indexet bygger på delvis andra antaganden, bland annat 85 % verkningsgrad och 1,5 cykler per dygn, så en viss skillnad är väntad. Månader där indexet saknas för batteriets uthållighet ingår inte i jämförelsen.",
@@ -62,6 +79,9 @@ const TXT = {
     prepared: (d, e) => `Prepared ${d} for ${e}`,
     k1: (p) => `Revenue ${p}`, k2: "Per MW", k3: "Versus Clean Horizon", k4: "Of market ceiling",
     k3sub: (n) => `${n} months with index`, k4sub: "perfect foresight",
+    k2sub: (v) => `${v}/MW/yr annualised`,
+    mode: { standard: "Standard profile", intensive: "Intensive profile" },
+    cyc: (c) => `${c} cycles/day`,
     summary: "Summary",
     b1: (p, t, pm) => `Over ${p} the battery would have earned ${t}, or ${pm} per MW.`,
     b2: (b, bv, w, wv) => `The strongest month was ${b} (${bv}), the weakest ${w} (${wv}).`,
@@ -78,6 +98,12 @@ const TXT = {
       "The figures show what the battery would have earned over the period with GreenVoltis optimisation. They are not a forecast of future revenue.",
       "Revenue is shown before the GreenVoltis optimisation fee. Grid tariffs, taxes and any outages are not included.",
     ],
+    modeTxt: {
+      standard: (c) => `Operating profile: Standard. GreenVoltis' regular optimisation, balanced against battery lifetime and warranty, on average ${c} cycles a day.`,
+      intensive: (c) => `Operating profile: Intensive. More intraday trading, ${c} cycles a day. It earns more but degrades the battery faster and may exceed what the battery warranty allows.`,
+    },
+    yearTxt: "The annualised figure scales the period's revenue to 365 days, for comparison with annual figures. Revenue varies over the year, so it is not a forecast.",
+    contactH: "Contact",
     refH: "The comparisons",
     ref: [
       "Clean Horizon Storage Index © Clean Horizon, delivered by Nord Pool. The index uses partly different assumptions, including 85% round-trip efficiency and 1.5 cycles a day, so some difference is expected. Months without an index value for this duration are left out of the comparison.",
@@ -151,6 +177,10 @@ export async function buildReportPdf(r, { lang = "sv", email = "", date = new Da
   text(p1, L.title, M, y, { font: bold, size: 22 });
   y -= 22;
   text(p1, `${fmtNum(r.mw, lang)} MW / ${fmtNum(r.mwh, lang)} MWh · ${fmtHours(r.c, lang)} · ${r.area} · ${period}`, M, y, { size: 11.5, color: C.mute });
+  y -= 14;
+  const mode = r.mode === "intensive" ? "intensive" : "standard";
+  const cycTxt = fmtNum(r.cycles || 0, lang);
+  text(p1, `${L.mode[mode]} · ${L.cyc(cycTxt)}`, M, y, { size: 9.5, color: mode === "intensive" ? C.gv : C.mute });
   y -= 16;
   text(p1, L.prepared(dateStr, email), M, y, { size: 9, color: C.faint });
 
@@ -158,7 +188,7 @@ export async function buildReportPdf(r, { lang = "sv", email = "", date = new Da
   y -= 26;
   const kpis = [
     [L.k1(period), fmtEur(r.total, lang), null, C.gv],
-    [L.k2, fmtEur(r.perMw, lang), null, C.ink],
+    [L.k2, fmtEur(r.perMw, lang), r.perMwYear ? L.k2sub(fmtEur(r.perMwYear, lang)) : null, C.ink],
     [L.k3, r.ch ? fmtPct(r.ch.ratio - 1, lang, true) : "—", r.ch ? L.k3sub(r.ch.n) : null, C.ink],
     [L.k4, r.ceil ? fmtPct(r.ceil.share, lang) : "—", L.k4sub, C.ink],
   ];
@@ -264,11 +294,23 @@ export async function buildReportPdf(r, { lang = "sv", email = "", date = new Da
   y -= 26;
   text(p2, L.methodH, M, y, { font: bold, size: 12 });
   y -= 16;
-  for (const s of L.method) y = para(p2, s, M, y, CW, { size: 9.5 }) - 6;
+  for (const s of [...L.method, L.modeTxt[mode](cycTxt), L.yearTxt]) y = para(p2, s, M, y, CW, { size: 9.5 }) - 6;
   y -= 10;
   text(p2, L.refH, M, y, { font: bold, size: 12 });
   y -= 16;
   for (const s of L.ref) y = para(p2, s, M, y, CW, { size: 9.5 }) - 6;
+
+  // Kontakt: fast ruta ovanför sidfoten, eller direkt efter texten om den
+  // skulle nå ned dit.
+  const boxH = 64;
+  const boxTop = Math.min(y - 14, M + 20 + boxH);
+  p2.drawRectangle({ x: M, y: boxTop - boxH, width: CW, height: boxH, color: C.panel });
+  p2.drawRectangle({ x: M, y: boxTop - boxH, width: 2.5, height: boxH, color: C.gv });
+  text(p2, L.contactH.toUpperCase(), M + 14, boxTop - 16, { size: 7.5, color: C.mute });
+  text(p2, CONTACT.name, M + 14, boxTop - 32, { font: bold, size: 11 });
+  text(p2, CONTACT.title + " · GreenVoltis AB", M + 14, boxTop - 46, { size: 9, color: C.mute });
+  text(p2, CONTACT.email, W - M - 14, boxTop - 32, { size: 9.5, color: C.gv, align: "right" });
+  text(p2, CONTACT.phone, W - M - 14, boxTop - 46, { size: 9.5, color: C.ink, align: "right" });
 
   pages.forEach((pg, i) => {
     pg.drawLine({ start: { x: M, y: M - 8 }, end: { x: W - M, y: M - 8 }, thickness: 0.6, color: C.rule });

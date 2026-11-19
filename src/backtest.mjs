@@ -14,21 +14,34 @@ export const AREAS = ["SE1", "SE2", "SE3", "SE4"];
 // med kalibreringsunderlag (Skynet, 2,5 MWh per MW). Utanför det intervallet
 // visas ingenting hellre än en extrapolation.
 export const C_MIN = 1.0;
+
+// Driftprofiler. "standard" ar GreenVoltis ordinarie optimering, avvagd mot
+// livslangd och garanti; "intensive" ar kundens val att cykla hardare pa
+// intradag. Pipelinen exporterar C-natet for bada (nycklar c* och hc*).
+// Cyklerna maste halla ihop med calculator.GV_CYCLES, GV_CYCLES_BY_AREA och
+// GV_CYCLES_HIGH.
+export const MODES = ["standard", "intensive"];
+const CYCLES_STD = { SE1: 1.3, SE2: 1.3, SE3: 1.5, SE4: 1.3 };
+const CYCLES_HIGH = 2.0;
+export function cyclesFor(area, mode = "standard") {
+  return mode === "intensive" ? CYCLES_HIGH : (CYCLES_STD[area] || 1.3);
+}
 export const C_MAX = 2.5;
 
 const num = (v) => (typeof v === "number" && isFinite(v) ? v : null);
 
-function gridKeys(row) {
+function gridKeys(row, prefix = "c") {
+  const re = new RegExp("^" + prefix + "\\d+(\\.\\d+)?$");
   return Object.keys(row)
-    .filter((k) => /^c\d+(\.\d+)?$/.test(k))
-    .map((k) => ({ k, c: parseFloat(k.slice(1)) }))
+    .filter((k) => re.test(k))
+    .map((k) => ({ k, c: parseFloat(k.slice(prefix.length)) }))
     .sort((a, b) => a.c - b.c);
 }
 
 // GreenVoltis strategi per MW vid uthållighet c, linjärt mellan punkterna i
 // pipelinens C-nät (c1, c1.25, c1.5 … c2.5).
-export function interpGrid(row, c) {
-  const ks = gridKeys(row);
+export function interpGrid(row, c, prefix = "c") {
+  const ks = gridKeys(row, prefix);
   if (!ks.length) return null;
   for (let i = 0; i < ks.length - 1; i++) {
     const a = ks[i], b = ks[i + 1];
@@ -62,8 +75,10 @@ export function interpHours(points, c) {
   return null;
 }
 
-export function computeBacktest({ revenue, benchmark, ceiling, area, mw, mwh }) {
+export function computeBacktest({ revenue, benchmark, ceiling, area, mw, mwh, mode = "standard" }) {
   if (!AREAS.includes(area)) return { error: "area" };
+  if (!MODES.includes(mode)) return { error: "mode" };
+  const prefix = mode === "intensive" ? "hc" : "c";
   mw = Number(mw);
   mwh = Number(mwh);
   if (!(mw > 0) || !(mwh > 0)) return { error: "input" };
@@ -82,7 +97,7 @@ export function computeBacktest({ revenue, benchmark, ceiling, area, mw, mwh }) 
 
   const months = [];
   for (const r of rows) {
-    const per = interpGrid(r, c);
+    const per = interpGrid(r, c, prefix);
     if (per == null) return { error: "noData" };
     const b = bIdx[r.year_month], k = kIdx[r.year_month];
     const chPer = b ? interpHours({ 1: b.h1, 2: b.h2, 4: b.h4 }, c) : null;
@@ -104,8 +119,15 @@ export function computeBacktest({ revenue, benchmark, ceiling, area, mw, mwh }) 
   const ceilSum = withCeil.reduce((a, m) => a + m.ceil, 0);
   const sorted = [...months].sort((a, b) => b.rev - a.rev);
 
+  // Arstakt: perioden skalad till 365 dagar. En normering for att kunna
+  // jamfora med arsangivelser (som Clean Horizons), inte en prognos.
+  const days = months.reduce((a, m) => {
+    const [y, mo] = m.ym.split("-").map(Number);
+    return a + new Date(y, mo, 0).getDate();
+  }, 0);
   return {
-    area, mw, mwh, c, months,
+    area, mw, mwh, c, months, mode, cycles: cyclesFor(area, mode), days,
+    perMwYear: days ? (total / mw) * 365 / days : null,
     first: months[0].ym,
     last: months[months.length - 1].ym,
     n: months.length,

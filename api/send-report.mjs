@@ -99,7 +99,7 @@ function userMail(r, lang, email) {
 <p>Attached is the report for your battery (${esc(spec)}). Over ${esc(p)} it would have earned
 <strong>${esc(fmtEur(r.total, lang))}</strong> with GreenVoltis optimisation, or ${esc(fmtEur(r.perMw, lang))} per MW.</p>
 <p>Questions, or want to discuss your battery? Just reply to this email.</p>
-<p>Kind regards,<br>GreenVoltis</p></div>`,
+<p>Kind regards,<br>Patrik Björklund<br>Head of Business Development, GreenVoltis<br>patrik.bjorklund@greenvoltis.com · +46(0)791 023 675</p></div>`,
     };
   }
   return {
@@ -109,7 +109,7 @@ function userMail(r, lang, email) {
 <p>Här kommer rapporten för ditt batteri (${esc(spec)}). Under ${esc(p)} hade det tjänat
 <strong>${esc(fmtEur(r.total, lang))}</strong> med GreenVoltis optimering, eller ${esc(fmtEur(r.perMw, lang))} per MW.</p>
 <p>Har du frågor eller vill prata om ditt batteri? Svara på det här mejlet.</p>
-<p>Vänliga hälsningar,<br>GreenVoltis</p></div>`,
+<p>Vänliga hälsningar,<br>Patrik Björklund<br>Head of Business Development, GreenVoltis<br>patrik.bjorklund@greenvoltis.com · +46(0)791 023 675</p></div>`,
   };
 }
 
@@ -119,8 +119,10 @@ function leadMail(r, email) {
     ["E-post", email],
     ["System", `${fmtNum(r.mw, "sv")} MW / ${fmtNum(r.mwh, "sv")} MWh (${fmtHours(r.c, "sv")})`],
     ["Elprisområde", r.area],
+    ["Driftprofil", `${r.mode === "intensive" ? "Intensiv" : "Standard"} (${fmtNum(r.cycles, "sv")} cykler/dygn)`],
     [`Intäkt ${p}`, fmtEur(r.total, "sv")],
     ["Per MW", fmtEur(r.perMw, "sv")],
+    ["Per MW och år (årstakt)", fmtEur(r.perMwYear, "sv")],
     ["Mot Clean Horizon", r.ch ? `${fmtPct(r.ch.ratio - 1, "sv", true)} (${r.ch.n} mån)` : "—"],
     ["Av marknadstaket", r.ceil ? fmtPct(r.ceil.share, "sv") : "—"],
     ["Starkaste månad", `${monthName(r.best.ym, "sv")} · ${fmtEur(r.best.rev, "sv")}`],
@@ -157,11 +159,12 @@ export default async function handler(req, res) {
   let body = req.body;
   if (typeof body === "string") { try { body = JSON.parse(body); } catch { body = null; } }
   const { area, mw, mwh } = body || {};
+  const mode = body && body.mode === "intensive" ? "intensive" : "standard";
   const lang = body && body.lang === "en" ? "en" : "sv";
   const MW = Number(mw), MWH = Number(mwh);
   if (!(MW > 0 && MW <= 1000 && MWH > 0 && MWH <= 2500)) return res.status(400).json({ error: "input" });
 
-  const r = computeBacktest({ revenue, benchmark, ceiling, area, mw: MW, mwh: MWH });
+  const r = computeBacktest({ revenue, benchmark, ceiling, area, mw: MW, mwh: MWH, mode });
   if (r.error) return res.status(400).json({ error: r.error });
 
   if (!allowed(email)) return res.status(429).json({ error: "rate_limited" });
@@ -170,7 +173,7 @@ export default async function handler(req, res) {
   try { pdf = await buildReportPdf(r, { lang, email }); }
   catch (e) { console.error("send-report: pdf", e); return res.status(500).json({ error: "pdf_failed" }); }
   const content = Buffer.from(pdf).toString("base64");
-  const filename = `GreenVoltis-batteri-2026-${r.area}-${fmtNum(MW, "en")}MW-${fmtNum(MWH, "en")}MWh.pdf`;
+  const filename = `GreenVoltis-batteri-2026-${r.area}-${fmtNum(MW, "en")}MW-${fmtNum(MWH, "en")}MWh${mode === "intensive" ? "-intensiv" : ""}.pdf`;
 
   const um = userMail(r, lang, email);
   try {

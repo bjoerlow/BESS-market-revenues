@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { ComposedChart,Bar,Line,XAxis,YAxis,CartesianGrid,Tooltip,Legend,ResponsiveContainer,Cell,ReferenceLine } from "recharts";
 import { createClient } from "@supabase/supabase-js";
-import { computeBacktest, periodLabel, monthName, fmtPct, fmtHours, fmtNum } from "./backtest.mjs";
+import { computeBacktest, periodLabel, monthName, fmtPct, fmtHours } from "./backtest.mjs";
 
 // Inloggning for rapportutskicket i "Ditt batteri": samma Supabase-projekt och
 // samma magic link som BESS Simulation. Satts via Vercel-miljovariabler; utan
@@ -99,6 +99,10 @@ const TXT={
   batNoData:"Marknadsdata för 2026 saknas.",
   batHist:"Siffrorna visar vad batteriet hade tjänat under perioden — inte en prognos.",
   batSim:"Vill du se framtida intäkter och återbetalningstid?",batSimLink:"Öppna BESS Simulation →",
+  batMode:"Driftprofil",batStd:"Standard",batHigh2:"Intensiv",
+  batYear:"Per MW och år",batYearSub:"i årstakt, inte en prognos",
+  batStdTxt:c=>`Standard är GreenVoltis ordinarie optimering, avvägd mot batteriets livslängd och garanti: i snitt ${String(c).replace(".",",")} cykler per dygn, cirka ${Math.round(c*365/10)*10} per år.`,
+  batHighTxt:c=>`Intensiv betyder mer intradagshandel: ${String(c).replace(".",",")} cykler per dygn, cirka ${Math.round(c*365/10)*10} per år. Det ger högre intäkt men snabbare degradering och kan gå utöver vad batteriets garanti tillåter. Kontrollera garantivillkoren innan du väljer den här profilen.`,
   repTitle:"Få rapporten som PDF",repSub:"Vi skickar en PDF med ditt batteris resultat till din e-post.",
   repHow:"Ange din e-postadress så får du en inloggningslänk — inget lösenord behövs. Du kommer tillbaka hit med dina värden ifyllda.",
   repEmail:"E-postadress",repEmailPh:"namn@foretag.se",repLink:"Skicka inloggningslänk",repLinking:"Skickar…",
@@ -178,6 +182,10 @@ const TXT={
   batNoData:"Market data for 2026 is missing.",
   batHist:"The figures show what the battery would have earned over the period — not a forecast.",
   batSim:"Want to see future revenue and payback?",batSimLink:"Open BESS Simulation →",
+  batMode:"Operating profile",batStd:"Standard",batHigh2:"Intensive",
+  batYear:"Per MW per year",batYearSub:"annualised, not a forecast",
+  batStdTxt:c=>`Standard is GreenVoltis' regular optimisation, balanced against battery lifetime and warranty: on average ${c} cycles a day, about ${Math.round(c*365/10)*10} a year.`,
+  batHighTxt:c=>`Intensive means more intraday trading: ${c} cycles a day, about ${Math.round(c*365/10)*10} a year. It earns more but degrades the battery faster and may exceed what the battery warranty allows. Check the warranty terms before choosing this profile.`,
   repTitle:"Get the report as a PDF",repSub:"We send a PDF with your battery's results to your email.",
   repHow:"Enter your email and we send you a sign-in link — no password needed. You return here with your values filled in.",
   repEmail:"Email address",repEmailPh:"name@company.com",repLink:"Send sign-in link",repLinking:"Sending…",
@@ -358,7 +366,7 @@ function IB({color,children,t}){
 }
 
 export default function Dashboard(){
-  const[area,setArea]=useState("SE3"),[dur,setDur]=useState(2),[mw,setMw]=useState(1);
+  const[area,setArea]=useState("SE4"),[dur,setDur]=useState(2),[mw,setMw]=useState(1);
   // Lasarvyn visar EN strategi: var egen. Benchmark ar Clean Horizons index och
   // det teoretiska maxtaket. De ovriga strategierna finns kvar i berakningen och
   // i konkurrentfliken, men listas inte sida vid sida langre - fardre siffror,
@@ -371,7 +379,7 @@ export default function Dashboard(){
   // Ljust lage ar standard - det ar lasarens vy och den bar tryckas och delas.
   const[tr,setTr]=useState(12),[isDark,setIsDark]=useState(false);
   const[lang,setLang]=useState("sv");
-  const[batMw,setBatMw]=useState(1),[batMwh,setBatMwh]=useState(2);
+  const[batMw,setBatMw]=useState(1),[batMwh,setBatMwh]=useState(2),[batMode,setBatMode]=useState("standard");
   const[user,setUser]=useState(null),[repOn,setRepOn]=useState(false);
   const[repEmail,setRepEmail]=useState(""),[repState,setRepState]=useState("idle");
   const[repErr,setRepErr]=useState(""),[repTo,setRepTo]=useState("");
@@ -385,14 +393,16 @@ export default function Dashboard(){
     const m=parseFloat(q.get("mw")),e=parseFloat(q.get("mwh"));
     if(m>0&&m<=1000)setBatMw(m);if(e>0&&e<=2500)setBatMwh(e);
     if(q.get("lang")==="en")setLang("en");
+    if(q.get("drift")==="intensiv")setBatMode("intensive");
   }catch(_){}},[]);
   useEffect(()=>{try{
     const q=new URLSearchParams(window.location.search);
-    if(view==="battery"){q.set("vy","batteri");q.set("zon",area);q.set("mw",String(batMw));q.set("mwh",String(batMwh));}
-    else["vy","zon","mw","mwh"].forEach(k=>q.delete(k));
+    if(view==="battery"){q.set("vy","batteri");q.set("zon",area);q.set("mw",String(batMw));q.set("mwh",String(batMwh));
+      if(batMode==="intensive")q.set("drift","intensiv");else q.delete("drift");}
+    else["vy","zon","mw","mwh","drift"].forEach(k=>q.delete(k));
     const qs=q.toString();
     window.history.replaceState(null,"",window.location.pathname+(qs?"?"+qs:"")+window.location.hash);
-  }catch(_){}},[view,area,batMw,batMwh]);
+  }catch(_){}},[view,area,batMw,batMwh,batMode]);
 
   useEffect(()=>{
     if(!supabase)return;
@@ -408,7 +418,7 @@ export default function Dashboard(){
     const{data:{subscription}}=supabase.auth.onAuthStateChange((_e,ses)=>setUser(ses?.user||null));
     return()=>subscription.unsubscribe();
   },[]);
-  useEffect(()=>{if(repState==="sent")setRepState("idle");},[area,batMw,batMwh]);
+  useEffect(()=>{if(repState==="sent")setRepState("idle");},[area,batMw,batMwh,batMode,lang]);
 
   const sendLink=async()=>{
     const e=repEmail.trim();
@@ -425,7 +435,7 @@ export default function Dashboard(){
       const tok=data?.session?.access_token;
       const r=await fetch("/api/send-report",{method:"POST",
         headers:{"Content-Type":"application/json",Authorization:`Bearer ${tok||""}`},
-        body:JSON.stringify({area,mw:batMw,mwh:batMwh,lang})});
+        body:JSON.stringify({area,mw:batMw,mwh:batMwh,mode:batMode,lang})});
       if(r.ok){const j=await r.json().catch(()=>({}));setRepTo(j.email||user?.email||"");setRepState("sent");return;}
       const j=await r.json().catch(()=>({}));
       setRepState("idle");
@@ -529,9 +539,14 @@ export default function Dashboard(){
 
   // Systemkalkyl: interpolera mellan närmaste C-tal i rutnätet, skala med MW.
   // Max C/2,5: det ar vad som finns att kalibrera mot (Skynet 2,5 MWh).
-  const bt=useMemo(()=>rawData&&ds==="pipeline"
-    ?computeBacktest({revenue:{areas:rawData},benchmark:bench,ceiling:tmax?{areas:tmax}:null,area,mw:batMw,mwh:batMwh})
+  const btFor=useCallback(mode=>rawData&&ds==="pipeline"
+    ?computeBacktest({revenue:{areas:rawData},benchmark:bench,ceiling:tmax?{areas:tmax}:null,area,mw:batMw,mwh:batMwh,mode})
     :null,[rawData,ds,bench,tmax,area,batMw,batMwh]);
+  const bt=useMemo(()=>btFor(batMode),[btFor,batMode]);
+  // Intensiv-valets merintakt mot standard, for knappen. Saknas hc*-natet
+  // (aldre pipelinedata) doljs valet.
+  const btAlt=useMemo(()=>{const a=btFor("standard"),b=btFor("intensive");
+    return a&&b&&!a.error&&!b.error?{std:a,high:b,gain:b.total/a.total-1}:null;},[btFor]);
   const manualMonths=useMemo(()=>monthsA.filter(m=>m.spreadSrc==="manual"),[monthsA]);
   const vers=useMemo(()=>{
     if(!acts||!acts.strategy_versions)return[];
@@ -903,7 +918,15 @@ export default function Dashboard(){
               <div><div style={lbl}>{L.batDur}</div>
                 <div style={{fontSize:20,fontWeight:700,fontFamily:"'JetBrains Mono'",padding:"5px 0",
                   color:bt&&bt.error&&/^c/.test(bt.error)?red:t.tx}}>{fmtHours(c,lang)}</div></div>
+              {btAlt&&<div><div style={lbl}>{L.batMode}</div>
+                <div style={{display:"flex",gap:6}}>
+                  <Pill active={batMode==="standard"} onClick={()=>setBatMode("standard")} t={t}>{L.batStd}</Pill>
+                  <Pill active={batMode==="intensive"} onClick={()=>setBatMode("intensive")} t={t}>
+                    {L.batHigh2} <span style={{opacity:0.75,fontWeight:500}}>{fmtPct(btAlt.gain,lang,true)}</span></Pill>
+                </div></div>}
             </div>
+            {btAlt&&<div style={{fontSize:11.5,color:t.mu,lineHeight:1.6,margin:"-6px 0 16px",maxWidth:760}}>
+              {batMode==="intensive"?L.batHighTxt(bt&&!bt.error?bt.cycles:2):L.batStdTxt(btAlt.std.cycles)}</div>}
             {!bt?<div style={{fontSize:12,color:t.mu}}>{ds==="pipeline"?L.loading:L.batNoData}</div>
              :bt.error?<div style={{fontSize:12.5,color:red,padding:"10px 0"}}>⚠ {
                {cLow:L.batLow,cHigh:L.batHigh}[bt.error]||L.batNoData}</div>
@@ -914,6 +937,7 @@ export default function Dashboard(){
               </div>
               <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:8,marginBottom:16}}>
                 <KPI label={L.batPerMw} value={fmtE(bt.perMw)} sub={`${fmtE(bt.perMwh)} per MWh`} color={t.mu} t={t}/>
+                <KPI label={L.batYear} value={fmtE(bt.perMwYear)} sub={L.batYearSub} color={t.mu} t={t}/>
                 <KPI label={L.batVsCh} value={bt.ch?fmtPct(bt.ch.ratio-1,lang,true):"—"} sub={bt.ch?L.batChSub(bt.ch.n):null} color={CH_C} t={t}/>
                 <KPI label={L.batCeil} value={bt.ceil?fmtPct(bt.ceil.share,lang):"—"} sub={L.batCeilSub} color={T_GREY} t={t}/>
                 <KPI label={L.batBest} value={fmtE(bt.best.rev)} sub={cap(monthName(bt.best.ym,lang))} color={sc("mfrr_opt")} t={t}/>

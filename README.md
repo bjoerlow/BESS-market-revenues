@@ -105,7 +105,7 @@ fungerar fliken som vanligt, men utskicket döljs.
 | Key | Value |
 |---|---|
 | `REACT_APP_SB_URL` | Supabase → Project Settings → API → Project URL |
-| `REACT_APP_SB_KEY` | Supabase → Project Settings → API → anon public key |
+| `REACT_APP_SB_KEY` | Supabase → Project Settings → API Keys → publishable key (`sb_publishable_…`). Samma värde som i BESS Simulation. Aldrig en secret key. |
 | `EMAILJS_TEMPLATE_ID` | mallens Template ID |
 | `EMAILJS_PRIVATE_KEY` | EmailJS Private Key |
 | `LEAD_EMAIL` | valfri; vem som får leadaviseringen (standard: samma adress som BESS Simulations admin) |

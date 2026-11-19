@@ -21,7 +21,9 @@
 //
 // Miljövariabler (Vercel → Settings → Environment Variables)
 //   REACT_APP_SB_URL     Supabase → Project Settings → API: Project URL
-//   REACT_APP_SB_KEY     Supabase → Project Settings → API: anon public key
+//   REACT_APP_SB_KEY     Supabase → Project Settings → API Keys: publishable key
+//                        (sb_publishable_…; legacy anon-nyckeln fungerar tills den fasas ut).
+//                        Skickas bara i apikey-headern, aldrig som Bearer, så båda typerna går.
 //   EMAILJS_TEMPLATE_ID  mallen för rapporten (se README)
 //   EMAILJS_PRIVATE_KEY  EmailJS → Account → API keys: Private Key
 //   EMAILJS_SERVICE_ID   valfri, standard samma tjänst som BESS Simulation
@@ -63,7 +65,8 @@ function cleanSbUrl(u) {
 function config() {
   return {
     sbUrl: cleanSbUrl(process.env.REACT_APP_SB_URL),
-    sbKey: String(process.env.REACT_APP_SB_KEY || "").trim(),
+    // En secret key (sb_secret_…) kringgår RLS och hör inte hemma här.
+    sbKey: (k => (k.startsWith("sb_secret_") ? "" : k))(String(process.env.REACT_APP_SB_KEY || "").trim()),
     ejsService: String(process.env.EMAILJS_SERVICE_ID || "service_47yayo1").trim(),
     ejsPublic: String(process.env.EMAILJS_PUBLIC_KEY || "dytz55eqSJLyofT-K").trim(),
     ejsTemplate: String(process.env.EMAILJS_TEMPLATE_ID || "").trim(),

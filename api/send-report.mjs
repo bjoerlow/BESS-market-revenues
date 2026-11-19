@@ -10,16 +10,23 @@
 //     som användaren bevisat att den äger.
 //  3. Siffrorna räknas om här från samma JSON-filer som dashboarden visar,
 //     med samma kod (src/backtest.mjs). Webbläsaren skickar bara indata.
-//  4. PDF:en skickas via Resend till användaren, och en leadavisering med
-//     samma PDF går till LEAD_EMAIL.
+//  4. PDF:en skickas via EmailJS - samma tjänst och e-postkonto som BESS
+//     Simulation använder - till användaren, och en leadavisering med samma
+//     PDF går till LEAD_EMAIL. Ingen egen domän behövs: EmailJS skickar från
+//     det e-postkonto som är kopplat till tjänsten.
+//
+//     Anropet görs från servern med EmailJS privata nyckel, inte från
+//     webbläsaren. Annars kunde vem som helst skicka GreenVoltis-märkta
+//     PDF:er med valfritt innehåll till valfri adress.
 //
 // Miljövariabler (Vercel → Settings → Environment Variables)
-//   REACT_APP_SB_URL   samma värde som i BESS Simulation (används även här)
-//   REACT_APP_SB_KEY   samma anon-nyckel som i BESS Simulation
-//   RESEND_API_KEY     från resend.com → API Keys
-//   REPORT_FROM        avsändare på verifierad domän, t.ex.
-//                      "GreenVoltis <rapport@greenvoltis.com>"
-//   LEAD_EMAIL         vem som får leadaviseringen (valfri; se standard nedan)
+//   REACT_APP_SB_URL     Supabase → Project Settings → API: Project URL
+//   REACT_APP_SB_KEY     Supabase → Project Settings → API: anon public key
+//   EMAILJS_TEMPLATE_ID  mallen för rapporten (se README)
+//   EMAILJS_PRIVATE_KEY  EmailJS → Account → API keys: Private Key
+//   EMAILJS_SERVICE_ID   valfri, standard samma tjänst som BESS Simulation
+//   EMAILJS_PUBLIC_KEY   valfri, standard samma publika nyckel som BESS Simulation
+//   LEAD_EMAIL           vem som får leadaviseringen (valfri; se standard nedan)
 //
 // Saknas något av de fyra första svarar funktionen 503 och dashboarden döljer
 // utskicket i stället för att visa en knapp som inte fungerar.
@@ -57,8 +64,10 @@ function config() {
   return {
     sbUrl: cleanSbUrl(process.env.REACT_APP_SB_URL),
     sbKey: String(process.env.REACT_APP_SB_KEY || "").trim(),
-    resendKey: String(process.env.RESEND_API_KEY || "").trim(),
-    from: String(process.env.REPORT_FROM || "").trim(),
+    ejsService: String(process.env.EMAILJS_SERVICE_ID || "service_47yayo1").trim(),
+    ejsPublic: String(process.env.EMAILJS_PUBLIC_KEY || "dytz55eqSJLyofT-K").trim(),
+    ejsTemplate: String(process.env.EMAILJS_TEMPLATE_ID || "").trim(),
+    ejsPrivate: String(process.env.EMAILJS_PRIVATE_KEY || "").trim(),
     lead: String(process.env.LEAD_EMAIL || DEFAULT_LEAD).trim(),
   };
 }
@@ -73,17 +82,32 @@ async function verifiedEmail(cfg, token) {
   return u && typeof u.email === "string" && u.email.includes("@") ? u.email.toLowerCase() : null;
 }
 
-async function sendMail(cfg, payload) {
-  const r = await fetch("https://api.resend.com/emails", {
+// Ett utskick via EmailJS. Mallen har mottagare, svarsadress, ämne och
+// HTML-innehåll som variabler, plus en variabelbilaga "report_pdf".
+async function sendMail(cfg, { to, replyTo, subject, html, filename, pdfBase64 }) {
+  const r = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
     method: "POST",
-    headers: { Authorization: `Bearer ${cfg.resendKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      service_id: cfg.ejsService,
+      template_id: cfg.ejsTemplate,
+      user_id: cfg.ejsPublic,
+      accessToken: cfg.ejsPrivate,
+      template_params: {
+        to_email: to,
+        reply_to: replyTo,
+        subject,
+        message_html: html,
+        filename,
+        report_pdf: `data:application/pdf;base64,${pdfBase64}`,
+      },
+    }),
   });
   if (!r.ok) {
     const detail = await r.text().catch(() => "");
-    throw new Error(`Resend ${r.status}: ${detail.slice(0, 300)}`);
+    throw new Error(`EmailJS ${r.status}: ${detail.slice(0, 300)}`);
   }
-  return r.json().catch(() => ({}));
+  return true;
 }
 
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -119,7 +143,6 @@ function leadMail(r, email) {
     ["E-post", email],
     ["System", `${fmtNum(r.mw, "sv")} MW / ${fmtNum(r.mwh, "sv")} MWh (${fmtHours(r.c, "sv")})`],
     ["Elprisområde", r.area],
-    ["Driftprofil", `${r.mode === "intensive" ? "Intensiv" : "Standard"} (${fmtNum(r.cycles, "sv")} cykler/dygn)`],
     [`Intäkt ${p}`, fmtEur(r.total, "sv")],
     ["Per MW", fmtEur(r.perMw, "sv")],
     ["Per MW och år (årstakt)", fmtEur(r.perMwYear, "sv")],
@@ -139,7 +162,7 @@ function leadMail(r, email) {
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
   const cfg = config();
-  const enabled = Boolean(cfg.sbUrl && cfg.sbKey && cfg.resendKey && cfg.from);
+  const enabled = Boolean(cfg.sbUrl && cfg.sbKey && cfg.ejsTemplate && cfg.ejsPrivate);
   // GET säger bara OM utskicket är aktiverat, så att dashboarden kan dölja
   // knappen i stället för att visa något som inte fungerar. Inga värden läcker.
   if (req.method === "GET") return res.status(200).json({ enabled });
@@ -159,12 +182,11 @@ export default async function handler(req, res) {
   let body = req.body;
   if (typeof body === "string") { try { body = JSON.parse(body); } catch { body = null; } }
   const { area, mw, mwh } = body || {};
-  const mode = body && body.mode === "intensive" ? "intensive" : "standard";
   const lang = body && body.lang === "en" ? "en" : "sv";
   const MW = Number(mw), MWH = Number(mwh);
   if (!(MW > 0 && MW <= 1000 && MWH > 0 && MWH <= 2500)) return res.status(400).json({ error: "input" });
 
-  const r = computeBacktest({ revenue, benchmark, ceiling, area, mw: MW, mwh: MWH, mode });
+  const r = computeBacktest({ revenue, benchmark, ceiling, area, mw: MW, mwh: MWH });
   if (r.error) return res.status(400).json({ error: r.error });
 
   if (!allowed(email)) return res.status(429).json({ error: "rate_limited" });
@@ -173,15 +195,12 @@ export default async function handler(req, res) {
   try { pdf = await buildReportPdf(r, { lang, email }); }
   catch (e) { console.error("send-report: pdf", e); return res.status(500).json({ error: "pdf_failed" }); }
   const content = Buffer.from(pdf).toString("base64");
-  const filename = `GreenVoltis-batteri-2026-${r.area}-${fmtNum(MW, "en")}MW-${fmtNum(MWH, "en")}MWh${mode === "intensive" ? "-intensiv" : ""}.pdf`;
+  const filename = `GreenVoltis-batteri-2026-${r.area}-${fmtNum(MW, "en")}MW-${fmtNum(MWH, "en")}MWh.pdf`;
 
   const um = userMail(r, lang, email);
   try {
-    await sendMail(cfg, {
-      from: cfg.from, to: [email], reply_to: cfg.lead,
-      subject: um.subject, html: um.html,
-      attachments: [{ filename, content }],
-    });
+    await sendMail(cfg, { to: email, replyTo: cfg.lead, subject: um.subject,
+      html: um.html, filename, pdfBase64: content });
   } catch (e) {
     console.error("send-report: user mail", e);
     return res.status(502).json({ error: "send_failed" });
@@ -191,8 +210,8 @@ export default async function handler(req, res) {
   if (cfg.lead) {
     const lm = leadMail(r, email);
     try {
-      await sendMail(cfg, { from: cfg.from, to: [cfg.lead], reply_to: email,
-        subject: lm.subject, html: lm.html, attachments: [{ filename, content }] });
+      await sendMail(cfg, { to: cfg.lead, replyTo: email, subject: lm.subject,
+        html: lm.html, filename, pdfBase64: content });
     } catch (e) { console.error("send-report: lead mail", e); }
   }
 

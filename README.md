@@ -87,23 +87,37 @@ under 2026. Kunden kan få resultatet som PDF till sin e-post efter inloggning m
 magic link — samma Supabase-projekt som BESS Simulation. Utan inställningarna nedan
 fungerar fliken som vanligt, men utskicket döljs.
 
-**1. Vercel → detta projekt → Settings → Environment Variables**
+**1. EmailJS** (samma konto och e-posttjänst som BESS Simulation, ingen egen domän behövs)
+
+- *Account → Security*: slå på **Allow EmailJS API for non-browser applications**
+  och **Use Private Key**.
+- *Account → API keys*: kopiera **Private Key**.
+- *Email Templates → Create New Template*, döp den till "Revenue Intelligence rapport":
+  - **To Email** `{{to_email}}` · **Reply To** `{{reply_to}}` · **From Name** `GreenVoltis`
+  - **Subject** `{{subject}}`
+  - **Content**: växla till kodläge och skriv `{{{message_html}}}` (tre klamrar)
+  - fliken **Attachments** → *Add Attachment* → **Variable Attachment**:
+    Parameter name `report_pdf`, Filename `{{filename}}`, Content type PDF
+  - spara och kopiera **Template ID**.
+
+**2. Vercel → detta projekt → Settings → Environment Variables**
 
 | Key | Value |
 |---|---|
-| `REACT_APP_SB_URL` | samma som i BESS Simulation |
-| `REACT_APP_SB_KEY` | samma anon-nyckel som i BESS Simulation |
-| `RESEND_API_KEY` | resend.com → API Keys |
-| `REPORT_FROM` | `GreenVoltis <rapport@greenvoltis.com>` (domänen måste vara verifierad i Resend) |
+| `REACT_APP_SB_URL` | Supabase → Project Settings → API → Project URL |
+| `REACT_APP_SB_KEY` | Supabase → Project Settings → API → anon public key |
+| `EMAILJS_TEMPLATE_ID` | mallens Template ID |
+| `EMAILJS_PRIVATE_KEY` | EmailJS Private Key |
 | `LEAD_EMAIL` | valfri; vem som får leadaviseringen (standard: samma adress som BESS Simulations admin) |
 | `REACT_APP_BESS_SIM_URL` | valfri; adressen till BESS Simulation, visas som länk under resultatet |
 
-**2. Supabase → Authentication → URL Configuration → Redirect URLs**
+Tjänst-ID och publik nyckel är desamma som i BESS Simulation och är förinställda
+(`EMAILJS_SERVICE_ID`, `EMAILJS_PUBLIC_KEY` för att byta).
+
+**3. Supabase → Authentication → URL Configuration → Redirect URLs**
 
 Lägg till Revenue Intelligence-adressen, t.ex. `https://<detta-projekt>.vercel.app/**`.
 Annars skickar magic linken tillbaka användaren till BESS Simulation.
-
-**3. Resend → Domains** — verifiera avsändardomänen (DNS-poster).
 
 Deploya om efter att variablerna är satta. `GET /api/send-report` svarar
 `{"enabled": true}` när allt är på plats.

@@ -41,8 +41,6 @@ const TXT = {
     k1: (p) => `Intäkt ${p}`, k2: "Per MW", k3: "Mot Clean Horizon", k4: "Av marknadstaket",
     k3sub: (n) => `${n} månader med index`, k4sub: "perfekt framförhållning",
     k2sub: (v) => `${v}/MW/år (årstakt)`,
-    mode: { standard: "Standardprofil", intensive: "Intensiv profil" },
-    cyc: (c) => `${c} cykler/dygn`,
     summary: "Sammanfattning",
     b1: (p, t, pm) => `Under ${p} hade batteriet tjänat ${t}, eller ${pm} per MW.`,
     b2: (b, bv, w, wv) => `Starkaste månaden var ${b} (${bv}), svagaste ${w} (${wv}).`,
@@ -59,10 +57,6 @@ const TXT = {
       "Siffrorna visar vad batteriet hade tjänat under perioden med GreenVoltis optimering. De är inte en prognos för framtida intäkter.",
       "Intäkterna redovisas före GreenVoltis optimeringsavgift. Elnätsavgifter, skatter och eventuella driftstopp ingår inte.",
     ],
-    modeTxt: {
-      standard: (c) => `Driftprofil: Standard. GreenVoltis ordinarie optimering, avvägd mot batteriets livslängd och garanti, i snitt ${c} cykler per dygn.`,
-      intensive: (c) => `Driftprofil: Intensiv. Mer intradagshandel, ${c} cykler per dygn. Ger högre intäkt men snabbare degradering och kan gå utöver vad batteriets garanti tillåter.`,
-    },
     yearTxt: "Årstakten är periodens intäkt omräknad till 365 dagar, för jämförelse med årsangivelser. Intäkterna varierar över året, så den är inte en prognos.",
     contactH: "Kontakt",
     refH: "Jämförelserna",
@@ -80,8 +74,6 @@ const TXT = {
     k1: (p) => `Revenue ${p}`, k2: "Per MW", k3: "Versus Clean Horizon", k4: "Of market ceiling",
     k3sub: (n) => `${n} months with index`, k4sub: "perfect foresight",
     k2sub: (v) => `${v}/MW/yr annualised`,
-    mode: { standard: "Standard profile", intensive: "Intensive profile" },
-    cyc: (c) => `${c} cycles/day`,
     summary: "Summary",
     b1: (p, t, pm) => `Over ${p} the battery would have earned ${t}, or ${pm} per MW.`,
     b2: (b, bv, w, wv) => `The strongest month was ${b} (${bv}), the weakest ${w} (${wv}).`,
@@ -98,10 +90,6 @@ const TXT = {
       "The figures show what the battery would have earned over the period with GreenVoltis optimisation. They are not a forecast of future revenue.",
       "Revenue is shown before the GreenVoltis optimisation fee. Grid tariffs, taxes and any outages are not included.",
     ],
-    modeTxt: {
-      standard: (c) => `Operating profile: Standard. GreenVoltis' regular optimisation, balanced against battery lifetime and warranty, on average ${c} cycles a day.`,
-      intensive: (c) => `Operating profile: Intensive. More intraday trading, ${c} cycles a day. It earns more but degrades the battery faster and may exceed what the battery warranty allows.`,
-    },
     yearTxt: "The annualised figure scales the period's revenue to 365 days, for comparison with annual figures. Revenue varies over the year, so it is not a forecast.",
     contactH: "Contact",
     refH: "The comparisons",
@@ -177,10 +165,7 @@ export async function buildReportPdf(r, { lang = "sv", email = "", date = new Da
   text(p1, L.title, M, y, { font: bold, size: 22 });
   y -= 22;
   text(p1, `${fmtNum(r.mw, lang)} MW / ${fmtNum(r.mwh, lang)} MWh · ${fmtHours(r.c, lang)} · ${r.area} · ${period}`, M, y, { size: 11.5, color: C.mute });
-  y -= 14;
-  const mode = r.mode === "intensive" ? "intensive" : "standard";
-  const cycTxt = fmtNum(r.cycles || 0, lang);
-  text(p1, `${L.mode[mode]} · ${L.cyc(cycTxt)}`, M, y, { size: 9.5, color: mode === "intensive" ? C.gv : C.mute });
+
   y -= 16;
   text(p1, L.prepared(dateStr, email), M, y, { size: 9, color: C.faint });
 
@@ -294,7 +279,7 @@ export async function buildReportPdf(r, { lang = "sv", email = "", date = new Da
   y -= 26;
   text(p2, L.methodH, M, y, { font: bold, size: 12 });
   y -= 16;
-  for (const s of [...L.method, L.modeTxt[mode](cycTxt), L.yearTxt]) y = para(p2, s, M, y, CW, { size: 9.5 }) - 6;
+  for (const s of [...L.method, L.yearTxt]) y = para(p2, s, M, y, CW, { size: 9.5 }) - 6;
   y -= 10;
   text(p2, L.refH, M, y, { font: bold, size: 12 });
   y -= 16;

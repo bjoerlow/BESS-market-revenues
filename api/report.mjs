@@ -1,37 +1,34 @@
-// ─── send-report.mjs ────────────────────────────────────────────────────────
-// Skickar "Ditt batteri 2026"-rapporten som PDF till den INLOGGADE användaren.
+// ─── report.mjs ─────────────────────────────────────────────────────────────
+// "Ditt batteri 2026"-rapporten som PDF för nedladdning, plus en
+// leadavisering till GreenVoltis om vem som tog fram den.
 //
 // Flöde
 //  1. Webbläsaren loggar in med magic link (Supabase, samma projekt som BESS
-//     Simulation) och anropar POST /api/send-report med sin access-token och
+//     Simulation) och anropar POST /api/report med sin access-token och
 //     { area, mw, mwh, lang }.
 //  2. Funktionen verifierar token mot Supabase och tar e-postadressen därifrån
-//     — aldrig från anropet — så att rapporten bara kan skickas till en adress
-//     som användaren bevisat att den äger.
+//     — aldrig från anropet — så leadet är en adress användaren bevisat att
+//     den äger.
 //  3. Siffrorna räknas om här från samma JSON-filer som dashboarden visar,
 //     med samma kod (src/backtest.mjs). Webbläsaren skickar bara indata.
-//  4. PDF:en skickas via EmailJS - samma tjänst och e-postkonto som BESS
-//     Simulation använder - till användaren, och en leadavisering med samma
-//     PDF går till LEAD_EMAIL. Ingen egen domän behövs: EmailJS skickar från
-//     det e-postkonto som är kopplat till tjänsten.
-//
-//     Anropet görs från servern med EmailJS privata nyckel, inte från
-//     webbläsaren. Annars kunde vem som helst skicka GreenVoltis-märkta
-//     PDF:er med valfritt innehåll till valfri adress.
+//  4. PDF:en returneras för nedladdning. Samtidigt skickas ett leadmejl
+//     (utan bilaga) via EmailJS till LEAD_EMAIL. EmailJS gratisnivå tillåter
+//     inte bilagor, därför laddas PDF:en ned i stället för att mejlas.
 //
 // Miljövariabler (Vercel → Settings → Environment Variables)
-//   REACT_APP_SB_URL     Supabase → Project Settings → API: Project URL
-//   REACT_APP_SB_KEY     Supabase → Project Settings → API Keys: publishable key
+//   REACT_APP_SB_URL     Config. Supabase → Project Settings → Data API: Project URL
+//   REACT_APP_SB_KEY     Config. Supabase → Project Settings → API Keys: publishable key
 //                        (sb_publishable_…; legacy anon-nyckeln fungerar tills den fasas ut).
-//                        Skickas bara i apikey-headern, aldrig som Bearer, så båda typerna går.
-//   EMAILJS_TEMPLATE_ID  mallen för rapporten (se README)
-//   EMAILJS_PRIVATE_KEY  EmailJS → Account → API keys: Private Key
+//                        Skickas bara i apikey-headern, aldrig som Bearer.
+//   EMAILJS_TEMPLATE_ID  Secret. Mallen för leadmejlet (se README)
+//   EMAILJS_PRIVATE_KEY  Secret. EmailJS → Account → General: Private Key
 //   EMAILJS_SERVICE_ID   valfri, standard samma tjänst som BESS Simulation
 //   EMAILJS_PUBLIC_KEY   valfri, standard samma publika nyckel som BESS Simulation
-//   LEAD_EMAIL           vem som får leadaviseringen (valfri; se standard nedan)
+//   LEAD_EMAIL           valfri, vem som får leadmejlet (standard nedan)
 //
-// Saknas något av de fyra första svarar funktionen 503 och dashboarden döljer
-// utskicket i stället för att visa en knapp som inte fungerar.
+// Utan Supabase-värdena svarar funktionen 503 och dashboarden döljer rutan.
+// Utan EmailJS-värdena fungerar nedladdningen, men inget leadmejl skickas —
+// då loggas leadet bara i Vercels funktionslogg.
 
 import { createRequire } from "module";
 import { computeBacktest, periodLabel, monthName, fmtEur, fmtPct, fmtHours, fmtNum } from "../src/backtest.mjs";
@@ -47,7 +44,7 @@ const DEFAULT_LEAD = "patrik.bjorklund@greenvoltis.com"; // samma som BESS Simul
 // Enkel spärr mot upprepade utskick per adress. Gäller per varm instans —
 // inte vattentät, men stoppar en dubbelklickande eller loopande klient.
 const recent = new Map();
-const LIMIT = 5, WINDOW_MS = 60 * 60 * 1000;
+const LIMIT = 10, WINDOW_MS = 60 * 60 * 1000;
 function allowed(email) {
   const now = Date.now();
   const list = (recent.get(email) || []).filter((t) => now - t < WINDOW_MS);
@@ -86,8 +83,8 @@ async function verifiedEmail(cfg, token) {
 }
 
 // Ett utskick via EmailJS. Mallen har mottagare, svarsadress, ämne och
-// HTML-innehåll som variabler, plus en variabelbilaga "report_pdf".
-async function sendMail(cfg, { to, replyTo, subject, html, filename, pdfBase64 }) {
+// HTML-innehåll som variabler. Ingen bilaga (kräver betald nivå).
+async function sendMail(cfg, { to, replyTo, subject, html }) {
   const r = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -101,8 +98,6 @@ async function sendMail(cfg, { to, replyTo, subject, html, filename, pdfBase64 }
         reply_to: replyTo,
         subject,
         message_html: html,
-        filename,
-        report_pdf: `data:application/pdf;base64,${pdfBase64}`,
       },
     }),
   });
@@ -115,32 +110,7 @@ async function sendMail(cfg, { to, replyTo, subject, html, filename, pdfBase64 }
 
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
-function userMail(r, lang, email) {
-  const p = periodLabel(r.first, r.last, lang);
-  const spec = `${fmtNum(r.mw, lang)} MW / ${fmtNum(r.mwh, lang)} MWh, ${r.area}`;
-  if (lang === "en") {
-    return {
-      subject: `Your battery's revenue in 2026 – ${spec}`,
-      html: `<div style="font-family:Arial,sans-serif;font-size:14px;color:#1a1a18;line-height:1.6">
-<p>Hello,</p>
-<p>Attached is the report for your battery (${esc(spec)}). Over ${esc(p)} it would have earned
-<strong>${esc(fmtEur(r.total, lang))}</strong> with GreenVoltis optimisation, or ${esc(fmtEur(r.perMw, lang))} per MW.</p>
-<p>Questions, or want to discuss your battery? Just reply to this email.</p>
-<p>Kind regards,<br>Patrik Björklund<br>Head of Business Development, GreenVoltis<br>patrik.bjorklund@greenvoltis.com · +46(0)791 023 675</p></div>`,
-    };
-  }
-  return {
-    subject: `Ditt batteris intäkter 2026 – ${spec}`,
-    html: `<div style="font-family:Arial,sans-serif;font-size:14px;color:#1a1a18;line-height:1.6">
-<p>Hej,</p>
-<p>Här kommer rapporten för ditt batteri (${esc(spec)}). Under ${esc(p)} hade det tjänat
-<strong>${esc(fmtEur(r.total, lang))}</strong> med GreenVoltis optimering, eller ${esc(fmtEur(r.perMw, lang))} per MW.</p>
-<p>Har du frågor eller vill prata om ditt batteri? Svara på det här mejlet.</p>
-<p>Vänliga hälsningar,<br>Patrik Björklund<br>Head of Business Development, GreenVoltis<br>patrik.bjorklund@greenvoltis.com · +46(0)791 023 675</p></div>`,
-  };
-}
-
-function leadMail(r, email) {
+function leadMail(r, email, link) {
   const p = periodLabel(r.first, r.last, "sv");
   const rows = [
     ["E-post", email],
@@ -156,16 +126,19 @@ function leadMail(r, email) {
   return {
     subject: `Ny rapport från Revenue Intelligence: ${email} – ${fmtNum(r.mw, "sv")} MW/${fmtNum(r.mwh, "sv")} MWh ${r.area}`,
     html: `<div style="font-family:Arial,sans-serif;font-size:14px;color:#1a1a18">
-<p>En användare har skickat sin Ditt batteri-rapport till sig själv. PDF:en är bifogad.</p>
+<p>En användare har laddat ner sin Ditt batteri-rapport. E-postadressen är verifierad via inloggningslänk.</p>
 <table style="border-collapse:collapse">${rows.map(([k, v]) =>
-      `<tr><td style="padding:3px 14px 3px 0;color:#64748b">${esc(k)}</td><td style="padding:3px 0"><strong>${esc(v)}</strong></td></tr>`).join("")}</table></div>`,
+      `<tr><td style="padding:3px 14px 3px 0;color:#64748b">${esc(k)}</td><td style="padding:3px 0"><strong>${esc(v)}</strong></td></tr>`).join("")}</table>
+${link ? `<p><a href="${esc(link)}">Öppna samma vy i Revenue Intelligence</a></p>` : ""}
+<p>Svara på det här mejlet för att skriva direkt till användaren.</p></div>`,
   };
 }
 
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
   const cfg = config();
-  const enabled = Boolean(cfg.sbUrl && cfg.sbKey && cfg.ejsTemplate && cfg.ejsPrivate);
+  const enabled = Boolean(cfg.sbUrl && cfg.sbKey);
+  const notify = Boolean(cfg.ejsTemplate && cfg.ejsPrivate && cfg.lead);
   // GET säger bara OM utskicket är aktiverat, så att dashboarden kan dölja
   // knappen i stället för att visa något som inte fungerar. Inga värden läcker.
   if (req.method === "GET") return res.status(200).json({ enabled });
@@ -179,7 +152,7 @@ export default async function handler(req, res) {
   const token = auth.startsWith("Bearer ") ? auth.slice(7).trim() : "";
   let email;
   try { email = await verifiedEmail(cfg, token); }
-  catch (e) { console.error("send-report: verify", e); return res.status(502).json({ error: "auth_unavailable" }); }
+  catch (e) { console.error("report: verify", e); return res.status(502).json({ error: "auth_unavailable" }); }
   if (!email) return res.status(401).json({ error: "unauthorized" });
 
   let body = req.body;
@@ -196,27 +169,24 @@ export default async function handler(req, res) {
 
   let pdf;
   try { pdf = await buildReportPdf(r, { lang, email }); }
-  catch (e) { console.error("send-report: pdf", e); return res.status(500).json({ error: "pdf_failed" }); }
-  const content = Buffer.from(pdf).toString("base64");
+  catch (e) { console.error("report: pdf", e); return res.status(500).json({ error: "pdf_failed" }); }
   const filename = `GreenVoltis-batteri-2026-${r.area}-${fmtNum(MW, "en")}MW-${fmtNum(MWH, "en")}MWh.pdf`;
 
-  const um = userMail(r, lang, email);
-  try {
-    await sendMail(cfg, { to: email, replyTo: cfg.lead, subject: um.subject,
-      html: um.html, filename, pdfBase64: content });
-  } catch (e) {
-    console.error("send-report: user mail", e);
-    return res.status(502).json({ error: "send_failed" });
-  }
+  // Leadet loggas alltid, så att det finns kvar i Vercels logg även om
+  // mejlet inte går fram.
+  console.log("ri-lead", JSON.stringify({ email, area: r.area, mw: MW, mwh: MWH,
+    total: Math.round(r.total), lang, at: new Date().toISOString() }));
 
-  // Leadaviseringen får inte fälla kundens utskick.
-  if (cfg.lead) {
-    const lm = leadMail(r, email);
+  if (notify) {
+    const host = String(req.headers["x-forwarded-host"] || req.headers.host || "");
+    const link = host ? `https://${host}/?vy=batteri&zon=${r.area}&mw=${MW}&mwh=${MWH}` : "";
+    const lm = leadMail(r, email, link);
     try {
-      await sendMail(cfg, { to: cfg.lead, replyTo: email, subject: lm.subject,
-        html: lm.html, filename, pdfBase64: content });
-    } catch (e) { console.error("send-report: lead mail", e); }
+      await sendMail(cfg, { to: cfg.lead, replyTo: email, subject: lm.subject, html: lm.html });
+    } catch (e) { console.error("report: lead mail", e); }
   }
 
-  return res.status(200).json({ ok: true, email });
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+  return res.status(200).send(Buffer.from(pdf));
 }

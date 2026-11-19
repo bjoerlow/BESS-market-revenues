@@ -1,5 +1,5 @@
 // ─── Ditt batteri 2026 — delad beräkning ────────────────────────────────────
-// Används av dashboarden (fliken "Ditt batteri") OCH av api/send-report.mjs.
+// Används av dashboarden (fliken "Ditt batteri") OCH av api/report.mjs.
 // Servern räknar om allt från zon, MW och MWh i stället för att ta emot
 // färdiga siffror från webbläsaren. Annars skulle vem som helst kunna skicka
 // sig själv en GreenVoltis-märkt PDF med påhittade intäkter.

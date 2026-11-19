@@ -89,16 +89,19 @@ fungerar fliken som vanligt, men utskicket döljs.
 
 **1. EmailJS** (samma konto och e-posttjänst som BESS Simulation, ingen egen domän behövs)
 
-- *Account → Security*: slå på **Allow EmailJS API for non-browser applications**
-  och **Use Private Key**.
-- *Account → API keys*: kopiera **Private Key**.
-- *Email Templates → Create New Template*, döp den till "Revenue Intelligence rapport":
-  - **To Email** `{{to_email}}` · **Reply To** `{{reply_to}}` · **From Name** `GreenVoltis`
+- *Account → Security*: bocka i **Allow EmailJS API for non-browser applications**.
+  Bocka INTE i "Use Private Key" — då slutar BESS Simulation (som skickar från
+  webbläsaren) att fungera.
+- *Account → General*: kopiera **Private Key**.
+- *Email Templates → Create New Template* ("Revenue Intelligence rapport"):
   - **Subject** `{{subject}}`
-  - **Content**: växla till kodläge och skriv `{{{message_html}}}` (tre klamrar)
-  - fliken **Attachments** → *Add Attachment* → **Variable Attachment**:
-    Parameter name `report_pdf`, Filename `{{filename}}`, Content type PDF
-  - spara och kopiera **Template ID**.
+  - **Content**: Edit Content → kodläge (`<>`) → ersätt allt med `{{{message_html}}}` (tre klamrar)
+  - **To Email** `{{to_email}}` · **From Name** `GreenVoltis` · **Reply To** `{{reply_to}}`
+    · From Email: behåll "Use Default Email Address"
+  - **Attachments** → Add Attachment → **Variable Attachment**: Parameter Name `report_pdf`,
+    Filename `GreenVoltis-batteri-2026.pdf`, Content Type PDF
+  - **Auto-Reply**: av
+  - spara, kopiera **Template ID** (fliken Settings).
 
 **2. Vercel → detta projekt → Settings → Environment Variables**
 

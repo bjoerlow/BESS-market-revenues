@@ -125,7 +125,7 @@ function wrap(text, font, size, width) {
   return lines;
 }
 
-export async function buildReportPdf(r, { lang = "sv", email = "", date = new Date() } = {}) {
+export async function buildReportPdf(r, { lang = "sv", email = "", name = "", project = "", date = new Date() } = {}) {
   const L = TXT[lang] || TXT.sv;
   const doc = await PDFDocument.create();
   const reg = await doc.embedFont(StandardFonts.Helvetica);
@@ -162,12 +162,16 @@ export async function buildReportPdf(r, { lang = "sv", email = "", date = new Da
   // ── Sida 1 ────────────────────────────────────────────────────────────────
   const p1 = doc.addPage(A4); pages.push(p1); header(p1);
   let y = H - M - 46;
+  if (project) {
+    text(p1, project, M, y, { font: bold, size: 11, color: C.gv });
+    y -= 22;
+  }
   text(p1, L.title, M, y, { font: bold, size: 22 });
   y -= 22;
   text(p1, `${fmtNum(r.mw, lang)} MW / ${fmtNum(r.mwh, lang)} MWh · ${fmtHours(r.c, lang)} · ${r.area} · ${period}`, M, y, { size: 11.5, color: C.mute });
 
   y -= 16;
-  text(p1, L.prepared(dateStr, email), M, y, { size: 9, color: C.faint });
+  text(p1, L.prepared(dateStr, name ? `${name} (${email})` : email), M, y, { size: 9, color: C.faint });
 
   // Nyckeltal
   y -= 26;

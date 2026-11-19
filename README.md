@@ -117,7 +117,17 @@ fungerar nedladdningen men leadet hamnar bara i Vercels funktionslogg (`ri-lead`
 nyckel för EmailJS är förinställda till BESS Simulations (`EMAILJS_SERVICE_ID`,
 `EMAILJS_PUBLIC_KEY` för att byta).
 
-**3. Supabase → Authentication → URL Configuration → Redirect URLs**
+**3. Supabase → SQL Editor** — kör `supabase/ri_projects.sql` en gång. Den skapar
+tabellen `ri_projects` (sparade projekt per användare, skyddad med row level
+security). Namn, telefon och företag sparas i användarens profil
+(`user_metadata`: `full_name`, `phone_number`, `company`) och krävs innan PDF:en
+lämnas ut.
+
+**4. Supabase → Authentication → Emails → Magic Link** — klistra in
+`supabase/magic-link.html` som mall, ämne `Din inloggningslänk till GreenVoltis`.
+Mallen delas med BESS Simulation (samma Supabase-projekt).
+
+**5. Supabase → Authentication → URL Configuration → Redirect URLs**
 
 Lägg till Revenue Intelligence-adressen, t.ex. `https://<detta-projekt>.vercel.app/**`.
 

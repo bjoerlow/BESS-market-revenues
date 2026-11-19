@@ -72,14 +72,21 @@ function config() {
   };
 }
 
-async function verifiedEmail(cfg, token) {
+// Verifierad användare: e-post från inloggningen, namn och telefon från
+// profilen (user_metadata, satt av användaren efter inloggning). Allt hämtas
+// från Supabase med användarens token — inget av det tas från anropet.
+const clip = (v, n) => String(v || "").replace(/[\u0000-\u001f]/g, " ").trim().slice(0, n);
+async function verifiedUser(cfg, token) {
   if (!token) return null;
   const r = await fetch(`${cfg.sbUrl}/auth/v1/user`, {
     headers: { apikey: cfg.sbKey, Authorization: `Bearer ${token}` },
   });
   if (!r.ok) return null;
   const u = await r.json().catch(() => null);
-  return u && typeof u.email === "string" && u.email.includes("@") ? u.email.toLowerCase() : null;
+  if (!(u && typeof u.email === "string" && u.email.includes("@"))) return null;
+  const m = u.user_metadata || {};
+  return { email: u.email.toLowerCase(), name: clip(m.full_name, 80),
+           phone: clip(m.phone_number, 30), company: clip(m.company, 80) };
 }
 
 // Ett utskick via EmailJS. Mallen har mottagare, svarsadress, ämne och
@@ -110,10 +117,15 @@ async function sendMail(cfg, { to, replyTo, subject, html }) {
 
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
-function leadMail(r, email, link) {
+function leadMail(r, who, project, link) {
+  const email = who.email;
   const p = periodLabel(r.first, r.last, "sv");
   const rows = [
+    ["Namn", who.name || "—"],
+    ["Telefon", who.phone || "—"],
+    ["Företag", who.company || "—"],
     ["E-post", email],
+    ["Projekt", project || "—"],
     ["System", `${fmtNum(r.mw, "sv")} MW / ${fmtNum(r.mwh, "sv")} MWh (${fmtHours(r.c, "sv")})`],
     ["Elprisområde", r.area],
     [`Intäkt ${p}`, fmtEur(r.total, "sv")],
@@ -124,7 +136,7 @@ function leadMail(r, email, link) {
     ["Starkaste månad", `${monthName(r.best.ym, "sv")} · ${fmtEur(r.best.rev, "sv")}`],
   ];
   return {
-    subject: `Ny rapport från Revenue Intelligence: ${email} – ${fmtNum(r.mw, "sv")} MW/${fmtNum(r.mwh, "sv")} MWh ${r.area}`,
+    subject: `Nytt lead från Revenue Intelligence: ${who.name || email}${who.company ? ` (${who.company})` : ""} – ${fmtNum(r.mw, "sv")} MW/${fmtNum(r.mwh, "sv")} MWh ${r.area}`,
     html: `<div style="font-family:Arial,sans-serif;font-size:14px;color:#1a1a18">
 <p>En användare har laddat ner sin Ditt batteri-rapport. E-postadressen är verifierad via inloggningslänk.</p>
 <table style="border-collapse:collapse">${rows.map(([k, v]) =>
@@ -150,15 +162,19 @@ export default async function handler(req, res) {
 
   const auth = String(req.headers.authorization || "");
   const token = auth.startsWith("Bearer ") ? auth.slice(7).trim() : "";
-  let email;
-  try { email = await verifiedEmail(cfg, token); }
+  let who;
+  try { who = await verifiedUser(cfg, token); }
   catch (e) { console.error("report: verify", e); return res.status(502).json({ error: "auth_unavailable" }); }
-  if (!email) return res.status(401).json({ error: "unauthorized" });
+  if (!who) return res.status(401).json({ error: "unauthorized" });
+  // Namn och telefon krävs innan rapporten lämnas ut — det är leadets värde.
+  if (!who.name || !who.phone) return res.status(400).json({ error: "profile" });
+  const email = who.email;
 
   let body = req.body;
   if (typeof body === "string") { try { body = JSON.parse(body); } catch { body = null; } }
   const { area, mw, mwh } = body || {};
   const lang = body && body.lang === "en" ? "en" : "sv";
+  const project = clip(body && body.name, 80);
   const MW = Number(mw), MWH = Number(mwh);
   if (!(MW > 0 && MW <= 1000 && MWH > 0 && MWH <= 2500)) return res.status(400).json({ error: "input" });
 
@@ -168,19 +184,21 @@ export default async function handler(req, res) {
   if (!allowed(email)) return res.status(429).json({ error: "rate_limited" });
 
   let pdf;
-  try { pdf = await buildReportPdf(r, { lang, email }); }
+  try { pdf = await buildReportPdf(r, { lang, email, name: who.name, project }); }
   catch (e) { console.error("report: pdf", e); return res.status(500).json({ error: "pdf_failed" }); }
-  const filename = `GreenVoltis-batteri-2026-${r.area}-${fmtNum(MW, "en")}MW-${fmtNum(MWH, "en")}MWh.pdf`;
+  const slug = project.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40);
+  const filename = `GreenVoltis-${slug ? slug + "-" : "batteri-2026-"}${r.area}-${fmtNum(MW, "en")}MW-${fmtNum(MWH, "en")}MWh.pdf`;
 
   // Leadet loggas alltid, så att det finns kvar i Vercels logg även om
   // mejlet inte går fram.
-  console.log("ri-lead", JSON.stringify({ email, area: r.area, mw: MW, mwh: MWH,
+  console.log("ri-lead", JSON.stringify({ email, name: who.name, phone: who.phone,
+    company: who.company, project, area: r.area, mw: MW, mwh: MWH,
     total: Math.round(r.total), lang, at: new Date().toISOString() }));
 
   if (notify) {
     const host = String(req.headers["x-forwarded-host"] || req.headers.host || "");
     const link = host ? `https://${host}/?vy=batteri&zon=${r.area}&mw=${MW}&mwh=${MWH}` : "";
-    const lm = leadMail(r, email, link);
+    const lm = leadMail(r, who, project, link);
     try {
       await sendMail(cfg, { to: cfg.lead, replyTo: email, subject: lm.subject, html: lm.html });
     } catch (e) { console.error("report: lead mail", e); }

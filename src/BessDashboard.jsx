@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { ComposedChart,Bar,Line,XAxis,YAxis,CartesianGrid,Tooltip,Legend,ResponsiveContainer,Cell,ReferenceLine } from "recharts";
 import { createClient } from "@supabase/supabase-js";
-import { computeBacktest, periodLabel, monthName, fmtPct, fmtHours, fmtNum } from "./backtest.mjs";
+import { computeBacktest, periodLabel, monthName, fmtPct, fmtHours } from "./backtest.mjs";
 
 // Inloggning for rapportutskicket i "Ditt batteri": samma Supabase-projekt och
 // samma magic link som BESS Simulation. Satts via Vercel-miljovariabler; utan
@@ -99,16 +99,17 @@ const TXT={
   batNoData:"Marknadsdata för 2026 saknas.",
   batHist:"Siffrorna visar vad batteriet hade tjänat under perioden — inte en prognos.",
   batSim:"Vill du se framtida intäkter och återbetalningstid?",batSimLink:"Öppna BESS Simulation →",
-  repTitle:"Få rapporten som PDF",repSub:"Vi skickar en PDF med ditt batteris resultat till din e-post.",
-  repHow:"Ange din e-postadress så får du en inloggningslänk — inget lösenord behövs. Du kommer tillbaka hit med dina värden ifyllda.",
+  batYear:"Per MW och år",batYearSub:"i årstakt, inte en prognos",
+  repTitle:"Ladda ner rapporten som PDF",repSub:"En PDF med ditt batteris resultat, att spara eller dela.",
+  repHow:"Ange din e-postadress så får du en inloggningslänk — inget lösenord behövs. Du kommer tillbaka hit med dina värden ifyllda och kan ladda ner PDF:en.",
   repEmail:"E-postadress",repEmailPh:"namn@foretag.se",repLink:"Skicka inloggningslänk",repLinking:"Skickar…",
   repLinkSent:e=>`Kolla inkorgen hos ${e} och klicka på länken. Du kommer tillbaka hit med dina värden ifyllda.`,
-  repSigned:"Inloggad som",repSend:"Skicka rapporten till min e-post",repSending:"Skickar rapporten…",
-  repSent:e=>`Rapporten är skickad till ${e}.`,repOut:"Logga ut",repAgain:"Skicka igen",
-  repPrivacy:"Vi använder din e-post för att skicka rapporten och för att kunna kontakta dig om den.",
+  repSigned:"Inloggad som",repSend:"Ladda ner PDF",repSending:"Skapar PDF…",
+  repSent:()=>"PDF:en är nedladdad.",repOut:"Logga ut",repAgain:"Ladda ner igen",
+  repPrivacy:"Vi sparar din e-postadress för att kunna kontakta dig om rapporten.",
   repBadEmail:"Ange en giltig e-postadress.",repLinkErr:"Det gick inte att skicka länken. Försök igen.",
-  repSendErr:"Det gick inte att skicka rapporten. Försök igen om en stund.",
-  repRate:"Du har skickat flera rapporter nyligen. Försök igen om en timme.",repAuth:"Inloggningen har gått ut. Logga in igen.",
+  repSendErr:"Det gick inte att skapa PDF:en. Försök igen om en stund.",
+  repRate:"Du har laddat ner flera rapporter nyligen. Försök igen om en timme.",repAuth:"Inloggningen har gått ut. Logga in igen.",
   hTable:"Samma siffror som diagrammet, månad för månad i tabellform.",
   ceilGap:"Outnyttjat",ceilTake:"Fångat av taket",ceilWhat:"Takets sammansättning",
   ceilMissing:"theoretical_max_all.json saknas i public/",ceilRun:"Kör",ceilPut:"och lägg filen i dashboardens public-mapp.",
@@ -178,16 +179,17 @@ const TXT={
   batNoData:"Market data for 2026 is missing.",
   batHist:"The figures show what the battery would have earned over the period — not a forecast.",
   batSim:"Want to see future revenue and payback?",batSimLink:"Open BESS Simulation →",
-  repTitle:"Get the report as a PDF",repSub:"We send a PDF with your battery's results to your email.",
-  repHow:"Enter your email and we send you a sign-in link — no password needed. You return here with your values filled in.",
+  batYear:"Per MW per year",batYearSub:"annualised, not a forecast",
+  repTitle:"Download the report as a PDF",repSub:"A PDF with your battery's results, to keep or share.",
+  repHow:"Enter your email and we send you a sign-in link — no password needed. You return here with your values filled in and can download the PDF.",
   repEmail:"Email address",repEmailPh:"name@company.com",repLink:"Send sign-in link",repLinking:"Sending…",
   repLinkSent:e=>`Check the inbox for ${e} and click the link. You return here with your values filled in.`,
-  repSigned:"Signed in as",repSend:"Send the report to my email",repSending:"Sending the report…",
-  repSent:e=>`The report has been sent to ${e}.`,repOut:"Sign out",repAgain:"Send again",
-  repPrivacy:"We use your email to send the report and to be able to contact you about it.",
+  repSigned:"Signed in as",repSend:"Download PDF",repSending:"Creating PDF…",
+  repSent:()=>"The PDF has been downloaded.",repOut:"Sign out",repAgain:"Download again",
+  repPrivacy:"We keep your email address so we can contact you about the report.",
   repBadEmail:"Enter a valid email address.",repLinkErr:"The link could not be sent. Please try again.",
-  repSendErr:"The report could not be sent. Please try again shortly.",
-  repRate:"You have sent several reports recently. Please try again in an hour.",repAuth:"Your sign-in has expired. Please sign in again.",
+  repSendErr:"The PDF could not be created. Please try again shortly.",
+  repRate:"You have downloaded several reports recently. Please try again in an hour.",repAuth:"Your sign-in has expired. Please sign in again.",
   hTable:"The same figures as the chart, month by month.",
   ceilGap:"Unused",ceilTake:"Captured",ceilWhat:"What the ceiling is made of",
   ceilMissing:"theoretical_max_all.json missing in public/",ceilRun:"Run",ceilPut:"and place the file in the dashboard public folder.",
@@ -358,7 +360,7 @@ function IB({color,children,t}){
 }
 
 export default function Dashboard(){
-  const[area,setArea]=useState("SE3"),[dur,setDur]=useState(2),[mw,setMw]=useState(1);
+  const[area,setArea]=useState("SE4"),[dur,setDur]=useState(2),[mw,setMw]=useState(1);
   // Lasarvyn visar EN strategi: var egen. Benchmark ar Clean Horizons index och
   // det teoretiska maxtaket. De ovriga strategierna finns kvar i berakningen och
   // i konkurrentfliken, men listas inte sida vid sida langre - fardre siffror,
@@ -388,15 +390,15 @@ export default function Dashboard(){
   }catch(_){}},[]);
   useEffect(()=>{try{
     const q=new URLSearchParams(window.location.search);
-    if(view==="battery"){q.set("vy","batteri");q.set("zon",area);q.set("mw",String(batMw));q.set("mwh",String(batMwh));}
-    else["vy","zon","mw","mwh"].forEach(k=>q.delete(k));
+    if(view==="battery"){q.set("vy","batteri");q.set("zon",area);q.set("mw",String(batMw));q.set("mwh",String(batMwh));q.delete("drift");}
+    else["vy","zon","mw","mwh","drift"].forEach(k=>q.delete(k));
     const qs=q.toString();
     window.history.replaceState(null,"",window.location.pathname+(qs?"?"+qs:"")+window.location.hash);
   }catch(_){}},[view,area,batMw,batMwh]);
 
   useEffect(()=>{
     if(!supabase)return;
-    fetch("/api/send-report").then(r=>r.ok?r.json():{enabled:false})
+    fetch("/api/report").then(r=>r.ok?r.json():{enabled:false})
       .then(d=>setRepOn(Boolean(d&&d.enabled))).catch(()=>setRepOn(false));
     supabase.auth.getSession().then(({data})=>{
       setUser(data?.session?.user||null);
@@ -408,7 +410,7 @@ export default function Dashboard(){
     const{data:{subscription}}=supabase.auth.onAuthStateChange((_e,ses)=>setUser(ses?.user||null));
     return()=>subscription.unsubscribe();
   },[]);
-  useEffect(()=>{if(repState==="sent")setRepState("idle");},[area,batMw,batMwh]);
+  useEffect(()=>{if(repState==="sent")setRepState("idle");},[area,batMw,batMwh,lang]);
 
   const sendLink=async()=>{
     const e=repEmail.trim();
@@ -423,10 +425,19 @@ export default function Dashboard(){
     try{
       const{data}=await supabase.auth.getSession();
       const tok=data?.session?.access_token;
-      const r=await fetch("/api/send-report",{method:"POST",
+      const r=await fetch("/api/report",{method:"POST",
         headers:{"Content-Type":"application/json",Authorization:`Bearer ${tok||""}`},
         body:JSON.stringify({area,mw:batMw,mwh:batMwh,lang})});
-      if(r.ok){const j=await r.json().catch(()=>({}));setRepTo(j.email||user?.email||"");setRepState("sent");return;}
+      if(r.ok){
+        // PDF:en laddas ned direkt. Filnamnet kommer fran servern.
+        const blob=await r.blob();
+        const cd=r.headers.get("Content-Disposition")||"";
+        const fn=(cd.match(/filename="([^"]+)"/)||[])[1]||"GreenVoltis-batteri-2026.pdf";
+        const url=URL.createObjectURL(blob);
+        const a=document.createElement("a");a.href=url;a.download=fn;
+        document.body.appendChild(a);a.click();a.remove();
+        setTimeout(()=>URL.revokeObjectURL(url),10000);
+        setRepState("sent");return;}
       const j=await r.json().catch(()=>({}));
       setRepState("idle");
       if(j.error==="unauthorized"){await supabase.auth.signOut();setRepErr("auth");}
@@ -914,6 +925,7 @@ export default function Dashboard(){
               </div>
               <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:8,marginBottom:16}}>
                 <KPI label={L.batPerMw} value={fmtE(bt.perMw)} sub={`${fmtE(bt.perMwh)} per MWh`} color={t.mu} t={t}/>
+                <KPI label={L.batYear} value={fmtE(bt.perMwYear)} sub={L.batYearSub} color={t.mu} t={t}/>
                 <KPI label={L.batVsCh} value={bt.ch?fmtPct(bt.ch.ratio-1,lang,true):"—"} sub={bt.ch?L.batChSub(bt.ch.n):null} color={CH_C} t={t}/>
                 <KPI label={L.batCeil} value={bt.ceil?fmtPct(bt.ceil.share,lang):"—"} sub={L.batCeilSub} color={T_GREY} t={t}/>
                 <KPI label={L.batBest} value={fmtE(bt.best.rev)} sub={cap(monthName(bt.best.ym,lang))} color={sc("mfrr_opt")} t={t}/>

@@ -80,34 +80,50 @@ This project is licensed under the MIT License.
 
 For questions or issues, please open an issue on GitHub.
 
-## Ditt batteri 2026 — rapport som PDF via e-post
+## Ditt batteri 2026 — PDF för nedladdning och leadavisering
 
 Fliken **Ditt batteri 2026** visar vad kundens batteri (zon, MW, MWh) hade tjänat
-under 2026. Kunden kan få resultatet som PDF till sin e-post efter inloggning med
-magic link — samma Supabase-projekt som BESS Simulation. Utan inställningarna nedan
-fungerar fliken som vanligt, men utskicket döljs.
+under 2026. Efter inloggning med magic link (samma Supabase-projekt som BESS
+Simulation) kan kunden ladda ner resultatet som PDF. Varje nedladdning ger ett
+leadmejl via EmailJS till GreenVoltis med kundens verifierade e-post, systemet
+och en länk till samma vy. Utan Supabase-värdena döljs rutan; utan EmailJS-värdena
+fungerar nedladdningen men leadet hamnar bara i Vercels funktionslogg (`ri-lead`).
 
-**1. Vercel → detta projekt → Settings → Environment Variables**
+**1. EmailJS** (samma konto och tjänst som BESS Simulation; gratisnivån räcker — ingen bilaga)
 
-| Key | Value |
-|---|---|
-| `REACT_APP_SB_URL` | samma som i BESS Simulation |
-| `REACT_APP_SB_KEY` | samma anon-nyckel som i BESS Simulation |
-| `RESEND_API_KEY` | resend.com → API Keys |
-| `REPORT_FROM` | `GreenVoltis <rapport@greenvoltis.com>` (domänen måste vara verifierad i Resend) |
-| `LEAD_EMAIL` | valfri; vem som får leadaviseringen (standard: samma adress som BESS Simulations admin) |
-| `REACT_APP_BESS_SIM_URL` | valfri; adressen till BESS Simulation, visas som länk under resultatet |
+- *Account → Security*: bocka i **Allow EmailJS API for non-browser applications**.
+  Bocka INTE i "Use Private Key" — då slutar BESS Simulation att fungera.
+- *Account → General*: kopiera **Private Key**.
+- *Email Templates → Create New Template*:
+  - **Subject** `{{subject}}`
+  - **Content**: Edit Content → kodläge → ersätt allt med `{{{message_html}}}` (tre klamrar)
+  - **To Email** `{{to_email}}` · **From Name** `GreenVoltis Revenue Intelligence` · **Reply To** `{{reply_to}}`
+    · From Email: behåll "Use Default Email Address"
+  - **Auto-Reply**: av. **Attachments**: inget.
+  - *Settings*: Name "Revenue Intelligence lead", spara, kopiera **Template ID**.
 
-**2. Supabase → Authentication → URL Configuration → Redirect URLs**
+**2. Vercel → detta projekt → Settings → Environment Variables**
+
+| Key | Value | Type |
+|---|---|---|
+| `REACT_APP_SB_URL` | Supabase → Project Settings → Data API → Project URL | Config |
+| `REACT_APP_SB_KEY` | Supabase → Project Settings → API Keys → publishable key (`sb_publishable_…`) | Config |
+| `EMAILJS_TEMPLATE_ID` | mallens Template ID | Secret |
+| `EMAILJS_PRIVATE_KEY` | EmailJS Private Key | Secret |
+| `LEAD_EMAIL` | valfri; mottagare av leadmejlet (standard patrik.bjorklund@greenvoltis.com) | Secret |
+| `REACT_APP_BESS_SIM_URL` | valfri; länk till BESS Simulation under resultatet | Config |
+
+`REACT_APP_`-variabler byggs in i sidan och måste vara Config. Tjänst-ID och publik
+nyckel för EmailJS är förinställda till BESS Simulations (`EMAILJS_SERVICE_ID`,
+`EMAILJS_PUBLIC_KEY` för att byta).
+
+**3. Supabase → Authentication → URL Configuration → Redirect URLs**
 
 Lägg till Revenue Intelligence-adressen, t.ex. `https://<detta-projekt>.vercel.app/**`.
-Annars skickar magic linken tillbaka användaren till BESS Simulation.
 
-**3. Resend → Domains** — verifiera avsändardomänen (DNS-poster).
-
-Deploya om efter att variablerna är satta. `GET /api/send-report` svarar
-`{"enabled": true}` när allt är på plats.
+Deploya om efter att variablerna är satta. `GET /api/report` svarar
+`{"enabled": true}` när Supabase är på plats.
 
 Beräkningen finns i `src/backtest.mjs` och används både av sidan och av
-`api/send-report.mjs`. Servern räknar om siffrorna från zon, MW och MWh och tar
+`api/report.mjs`. Servern räknar om siffrorna från zon, MW och MWh och tar
 mottagaradressen från inloggningen — aldrig från anropet.
